@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, Lock, Unlock } from "lucide-react";
+import { Edit, Save, Lock, Unlock, Calendar } from "lucide-react";
 import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface CredentialsPanelProps {
   credentials: {
@@ -77,6 +80,13 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     }
   };
 
+  const handleDateSelect = (credKey: string, date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM-dd");
+      handleInputChange(credKey, 'expiry_date', formattedDate);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Credentials Management</h2>
@@ -89,7 +99,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
           return (
             <DataCard
               key={credKey}
-              title={`${credKey.toUpperCase()} - ${currentCred.email}`}
+              title={`${credKey.toUpperCase()}`}
               className={currentCred.locked === 1 ? "border-red-500/30" : ""}
             >
               <div className="space-y-4">
@@ -133,11 +143,30 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                       
                       <div className="space-y-1">
                         <Label htmlFor={`${credKey}-expiry`}>Expiry Date</Label>
-                        <Input
-                          id={`${credKey}-expiry`}
-                          value={currentCred.expiry_date}
-                          onChange={(e) => handleInputChange(credKey, 'expiry_date', e.target.value)}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`${credKey}-expiry`}
+                            value={currentCred.expiry_date}
+                            onChange={(e) => handleInputChange(credKey, 'expiry_date', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <CalendarComponent
+                                mode="single"
+                                selected={new Date(currentCred.expiry_date)}
+                                onSelect={(date) => handleDateSelect(credKey, date)}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
@@ -184,10 +213,10 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium">{currentCred.email}</p>
+                          <p className="font-medium text-sm break-all">{currentCred.email}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Password</p>
