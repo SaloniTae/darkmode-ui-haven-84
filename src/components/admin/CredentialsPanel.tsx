@@ -13,6 +13,16 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface CredentialsPanelProps {
   credentials: {
@@ -27,6 +37,12 @@ interface CredentialsPanelProps {
 export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) {
   const [editingCred, setEditingCred] = useState<string | null>(null);
   const [editedCredentials, setEditedCredentials] = useState({ ...credentials });
+  const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
+    open: false,
+    action: async () => {},
+    title: "",
+    description: ""
+  });
 
   const handleEditCred = (credKey: string) => {
     setEditingCred(credKey);
@@ -62,22 +78,29 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     const currentCred = editedCredentials[credKey as keyof typeof editedCredentials];
     const newLockedValue = currentCred.locked === 1 ? 0 : 1;
     
-    try {
-      await updateData(`/${credKey}/locked`, newLockedValue);
-      
-      setEditedCredentials({
-        ...editedCredentials,
-        [credKey]: {
-          ...currentCred,
-          locked: newLockedValue
+    setConfirmationDialog({
+      open: true,
+      action: async () => {
+        try {
+          await updateData(`/${credKey}/locked`, newLockedValue);
+          
+          setEditedCredentials({
+            ...editedCredentials,
+            [credKey]: {
+              ...currentCred,
+              locked: newLockedValue
+            }
+          });
+          
+          toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
+        } catch (error) {
+          console.error(`Error toggling lock for ${credKey}:`, error);
+          toast.error(`Failed to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}`);
         }
-      });
-      
-      toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
-    } catch (error) {
-      console.error(`Error toggling lock for ${credKey}:`, error);
-      toast.error(`Failed to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}`);
-    }
+      },
+      title: `${newLockedValue === 1 ? 'Lock' : 'Unlock'} ${credKey}`,
+      description: `Are you sure you want to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}?`
+    });
   };
 
   const handleDateSelect = (credKey: string, date: Date | undefined) => {
@@ -214,35 +237,35 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                   <>
                     <div className="space-y-2">
                       <div className="grid grid-cols-1 gap-4">
-                        <div>
+                        <div className="overflow-hidden">
                           <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium text-sm break-all">{currentCred.email}</p>
+                          <p className="font-medium text-sm truncate" title={currentCred.email}>{currentCred.email}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Password</p>
-                          <p className="font-medium">{currentCred.password}</p>
+                          <p className="font-medium text-sm">{currentCred.password}</p>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Slot</p>
-                          <p className="font-medium">{currentCred.belongs_to_slot}</p>
+                          <p className="font-medium text-sm">{currentCred.belongs_to_slot}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Expiry Date</p>
-                          <p className="font-medium">{currentCred.expiry_date}</p>
+                          <p className="font-medium text-sm">{currentCred.expiry_date}</p>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Usage</p>
-                          <p className="font-medium">{currentCred.usage_count} / {currentCred.max_usage}</p>
+                          <p className="font-medium text-sm">{currentCred.usage_count} / {currentCred.max_usage}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Status</p>
-                          <p className={`font-medium ${currentCred.locked === 1 ? "text-red-400" : "text-green-400"}`}>
+                          <p className={`font-medium text-sm ${currentCred.locked === 1 ? "text-red-400" : "text-green-400"}`}>
                             {currentCred.locked === 1 ? "Locked" : "Unlocked"}
                           </p>
                         </div>
@@ -276,6 +299,35 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
           );
         })}
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog 
+        open={confirmationDialog.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmationDialog({...confirmationDialog, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmationDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                await confirmationDialog.action();
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

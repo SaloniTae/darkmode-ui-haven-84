@@ -1,18 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-const navItems = [
-  { path: "/admin", label: "Admin", icon: Shield },
-];
 
 export function Header() {
-  const location = useLocation();
-  const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -24,11 +16,6 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu when location changes
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location.pathname]);
-
   return (
     <header
       className={cn(
@@ -38,7 +25,7 @@ export function Header() {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link 
-          to="/admin" 
+          to="/" 
           className="font-medium text-xl flex items-center gap-2"
         >
           <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center backdrop-blur-sm border border-white/10">
