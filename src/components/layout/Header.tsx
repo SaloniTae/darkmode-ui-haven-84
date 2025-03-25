@@ -2,12 +2,13 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Database, Home, Menu, X } from "lucide-react";
+import { Database, Home, Menu, Shield, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/database", label: "Database", icon: Database },
+  { path: "/admin", label: "Admin", icon: Shield },
 ];
 
 export function Header() {
