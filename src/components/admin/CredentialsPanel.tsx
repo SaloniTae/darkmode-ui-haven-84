@@ -13,6 +13,7 @@ import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
+import { cn } from "@/lib/utils";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -246,7 +247,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                   <>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Badge variant={currentCred.locked === 0 ? "success" : "destructive"} className="px-2 py-1">
+                        <Badge variant={currentCred.locked === 0 ? "outline" : "destructive"} className={cn("px-2 py-1", currentCred.locked === 0 ? "bg-green-500/20 text-green-600 hover:bg-green-500/30 hover:text-green-700" : "")}>
                           {currentCred.locked === 0 ? "Unlocked" : "Locked"}
                         </Badge>
                         <Badge variant="outline" className="bg-primary/10">{currentCred.belongs_to_slot}</Badge>
