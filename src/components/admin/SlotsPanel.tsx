@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -123,8 +124,12 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   };
 
   const getTimePickerValues = () => {
-    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')); // 12-hour format
-    const minutes = ['00', '15', '30', '45'];
+    // Generate hours in 12-hour format (1-12)
+    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    
+    // Generate all minutes (00-59)
+    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+    
     const periods = ['AM', 'PM'];
     return { hours, minutes, periods };
   };
@@ -227,68 +232,78 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                 <div className="mt-4 p-2 border-t pt-4">
                                   <p className="text-sm font-medium mb-2">Time</p>
                                   <div className="flex items-center gap-2">
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_start), 'h')}
-                                      onValueChange={(hour) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_start);
-                                        const isPM = date.getHours() >= 12;
-                                        const hourValue = parseInt(hour);
-                                        date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
-                                        handleDateTimeSelect(slotKey, 'slot_start', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Hour" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {hours.map((hour) => (
-                                          <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                     <span className="flex items-center">:</span>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_start), 'mm')}
-                                      onValueChange={(minute) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_start);
-                                        date.setMinutes(parseInt(minute));
-                                        handleDateTimeSelect(slotKey, 'slot_start', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Min" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {minutes.map((minute) => (
-                                          <SelectItem key={minute} value={minute}>{minute}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_start), 'a')}
-                                      onValueChange={(period) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_start);
-                                        const currentHour = date.getHours();
-                                        const isPM = period === 'PM';
-                                        
-                                        if (isPM && currentHour < 12) {
-                                          date.setHours(currentHour + 12);
-                                        } else if (!isPM && currentHour >= 12) {
-                                          date.setHours(currentHour - 12);
-                                        }
-                                        
-                                        handleDateTimeSelect(slotKey, 'slot_start', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="AM/PM" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {periods.map((period) => (
-                                          <SelectItem key={period} value={period}>{period}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   </div>
                                   <Button 
                                     className="w-full mt-3" 
@@ -343,68 +358,78 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                 <div className="mt-4 p-2 border-t pt-4">
                                   <p className="text-sm font-medium mb-2">Time</p>
                                   <div className="flex items-center gap-2">
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_end), 'h')}
-                                      onValueChange={(hour) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_end);
-                                        const isPM = date.getHours() >= 12;
-                                        const hourValue = parseInt(hour);
-                                        date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
-                                        handleDateTimeSelect(slotKey, 'slot_end', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Hour" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {hours.map((hour) => (
-                                          <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                     <span className="flex items-center">:</span>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_end), 'mm')}
-                                      onValueChange={(minute) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_end);
-                                        date.setMinutes(parseInt(minute));
-                                        handleDateTimeSelect(slotKey, 'slot_end', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Min" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {minutes.map((minute) => (
-                                          <SelectItem key={minute} value={minute}>{minute}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.slot_end), 'a')}
-                                      onValueChange={(period) => {
-                                        const date = parseSlotDateTime(currentSlot.slot_end);
-                                        const currentHour = date.getHours();
-                                        const isPM = period === 'PM';
-                                        
-                                        if (isPM && currentHour < 12) {
-                                          date.setHours(currentHour + 12);
-                                        } else if (!isPM && currentHour >= 12) {
-                                          date.setHours(currentHour - 12);
-                                        }
-                                        
-                                        handleDateTimeSelect(slotKey, 'slot_end', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="AM/PM" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {periods.map((period) => (
-                                          <SelectItem key={period} value={period}>{period}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   </div>
                                   <Button 
                                     className="w-full mt-3" 
@@ -459,68 +484,78 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                 <div className="mt-4 p-2 border-t pt-4">
                                   <p className="text-sm font-medium mb-2">Time</p>
                                   <div className="flex items-center gap-2">
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.last_update), 'h')}
-                                      onValueChange={(hour) => {
-                                        const date = parseSlotDateTime(currentSlot.last_update);
-                                        const isPM = date.getHours() >= 12;
-                                        const hourValue = parseInt(hour);
-                                        date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
-                                        handleDateTimeSelect(slotKey, 'last_update', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Hour" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {hours.map((hour) => (
-                                          <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                     <span className="flex items-center">:</span>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.last_update), 'mm')}
-                                      onValueChange={(minute) => {
-                                        const date = parseSlotDateTime(currentSlot.last_update);
-                                        date.setMinutes(parseInt(minute));
-                                        handleDateTimeSelect(slotKey, 'last_update', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="Min" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {minutes.map((minute) => (
-                                          <SelectItem key={minute} value={minute}>{minute}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Select 
-                                      value={format(parseSlotDateTime(currentSlot.last_update), 'a')}
-                                      onValueChange={(period) => {
-                                        const date = parseSlotDateTime(currentSlot.last_update);
-                                        const currentHour = date.getHours();
-                                        const isPM = period === 'PM';
-                                        
-                                        if (isPM && currentHour < 12) {
-                                          date.setHours(currentHour + 12);
-                                        } else if (!isPM && currentHour >= 12) {
-                                          date.setHours(currentHour - 12);
-                                        }
-                                        
-                                        handleDateTimeSelect(slotKey, 'last_update', date);
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-20">
-                                        <SelectValue placeholder="AM/PM" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {periods.map((period) => (
-                                          <SelectItem key={period} value={period}>{period}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   </div>
                                   <Button 
                                     className="w-full mt-3" 

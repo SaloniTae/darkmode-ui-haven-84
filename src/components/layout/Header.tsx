@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
 
@@ -24,15 +23,12 @@ export function Header() {
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link 
-          to="/" 
-          className="font-medium text-xl flex items-center gap-2"
-        >
+        <div className="font-medium text-xl flex items-center gap-2">
           <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center backdrop-blur-sm border border-white/10">
             <Shield className="h-4 w-4 text-primary" />
           </div>
           <span className="text-gradient font-bold">Admin Dashboard</span>
-        </Link>
+        </div>
       </div>
     </header>
   );
