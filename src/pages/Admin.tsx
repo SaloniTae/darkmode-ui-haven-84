@@ -9,7 +9,7 @@ import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
 import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
@@ -61,18 +61,13 @@ export default function Admin() {
   return (
     <MainLayout>
       <div className="space-y-8">
-        <div className="glass-morphism p-6 rounded-lg" style={{ background: "linear-gradient(to right, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05))" }}>
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold text-gradient mb-2">Firebase Admin Dashboard</h1>
-              <p className="text-muted-foreground">Manage your streaming account systems</p>
-            </div>
-          </div>
+        <div className="glass-morphism p-6 rounded-lg">
+          <h1 className="text-3xl font-bold text-gradient mb-2">Firebase Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage your Crunchyroll Premium account system</p>
         </div>
 
         <Tabs defaultValue="admin" className="w-full">
-          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg" style={{ background: "linear-gradient(to right, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05))" }}>
+          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg">
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="admin">Admins</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="credentials">Credentials</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="slots">Slots</TabsTrigger>
