@@ -117,8 +117,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
     );
   };
 
-  const processedTransactions = processTransactions();
-
   const handleEditTransaction = (transaction: ProcessedTransaction) => {
     setEditingTransaction(transaction);
     setEditedData({...transaction.originalData});
@@ -173,6 +171,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       return dateString;
     }
   };
+
+  const processedTransactions = processTransactions();
 
   return (
     <div className="space-y-6">
@@ -238,7 +238,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       
       <div className="glass-morphism rounded-lg overflow-hidden">
         {processedTransactions.length > 0 ? (
-          <ScrollArea className="h-[400px]" orientation="both">
+          <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -327,7 +327,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       <div>
         <h3 className="text-xl font-semibold mb-4">Used Order IDs</h3>
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <ScrollArea className="h-[200px]" orientation="both">
+          <ScrollArea className="h-[200px]">
             <div className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {Object.entries(usedOrderIds).map(([orderId, used]) => (
