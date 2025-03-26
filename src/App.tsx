@@ -1,5 +1,5 @@
 
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, memo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,11 +17,13 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Prevent unnecessary refetching
       retry: 1, // Limit retries to reduce network requests
       staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+      cacheTime: 10 * 60 * 1000, // Cache for 10 minutes
     },
   },
 });
 
-const App = () => (
+// Memoize the App component to reduce unnecessary re-renders
+const App = memo(() => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -39,6 +41,6 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+));
 
 export default App;

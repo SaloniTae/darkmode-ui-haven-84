@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X } from "lucide-react";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon } from "lucide-react";
 import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Credential {
   belongs_to_slot: string;
@@ -55,7 +56,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     description: ""
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
 
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
@@ -147,12 +147,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     }
   };
 
-  // Generate hours for the time picker (12-hour format)
-  const hoursOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-
-  // Generate minutes for the time picker (all minutes, not just 15-minute intervals)
-  const minutesOptions = Array.from({ length: 60 }, (_, i) => i);
-
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Credentials Management</h2>
@@ -220,7 +214,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant="outline" className="ml-2">
-                                <Calendar className="h-4 w-4" />
+                                <CalendarIcon className="h-4 w-4" />
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0 bg-popover">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -58,11 +57,9 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
     type: ""
   });
   
-  // Process transactions
   const processTransactions = (): ProcessedTransaction[] => {
     const processedTransactions: ProcessedTransaction[] = [];
     
-    // Separate transaction types
     const regularTransactions: Record<string, any> = {};
     const specialTransactions: Record<string, Record<string, any>> = {};
     
@@ -74,7 +71,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       }
     });
     
-    // Process regular transactions
     Object.entries(regularTransactions).forEach(([transactionId, details]) => {
       if (
         (filterType === "all" || filterType === "regular") &&
@@ -93,11 +89,10 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       }
     });
     
-    // Process special transactions (free trials and referrals)
     Object.entries(specialTransactions).forEach(([type, transactions]) => {
       Object.entries(transactions).forEach(([transactionId, details]) => {
         if (
-          (transactionId !== type + "-OTTONRENT") && // Skip counter entries
+          (transactionId !== type + "-OTTONRENT") && 
           (filterType === "all" || 
            (filterType === "freetrial" && type === "FTRIAL-ID") ||
            (filterType === "referral" && type === "REF-ID")) &&
@@ -117,7 +112,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       });
     });
     
-    // Sort transactions by approval date (newest first)
     return processedTransactions.sort((a, b) => 
       new Date(b.approved).getTime() - new Date(a.approved).getTime()
     );
@@ -224,9 +218,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
           <div className="py-4">
             <span className="text-3xl font-bold">
               {transactions["FTRIAL-ID"] && 
-               transactions["FTRIAL-ID"]["FTRIAL-ID-OTTONRENT"] ? 
-               (transactions["FTRIAL-ID"]["FTRIAL-ID-OTTONRENT"] as number || 0) : 
-               0}
+               Object.keys(transactions["FTRIAL-ID"]).filter(id => id !== "FTRIAL-ID-OTTONRENT").length}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Total claimed</p>
           </div>
@@ -246,7 +238,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       
       <div className="glass-morphism rounded-lg overflow-hidden">
         {processedTransactions.length > 0 ? (
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="h-[400px]" orientation="both">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -335,7 +327,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       <div>
         <h3 className="text-xl font-semibold mb-4">Used Order IDs</h3>
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <ScrollArea className="h-[200px]">
+          <ScrollArea className="h-[200px]" orientation="both">
             <div className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {Object.entries(usedOrderIds).map(([orderId, used]) => (
@@ -354,7 +346,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         </div>
       </div>
       
-      {/* Edit Transaction Dialog */}
       {editingTransaction && editedData && (
         <Dialog open={!!editingTransaction} onOpenChange={(open) => {
           if (!open) {
@@ -425,7 +416,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         </Dialog>
       )}
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog 
         open={deleteConfirmation.open} 
         onOpenChange={(open) => {
