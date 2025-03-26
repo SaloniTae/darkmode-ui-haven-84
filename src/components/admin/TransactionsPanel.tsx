@@ -4,88 +4,182 @@ import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Trash2, Search, Calendar, Clock, CheckCircle, AlertCircle, Filter, Edit } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { updateData } from "@/lib/firebase";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { format, parse } from "date-fns";
 
 interface TransactionsPanelProps {
   transactions: Transactions;
   usedOrderIds: { [key: string]: boolean };
 }
 
+interface ProcessedTransaction {
+  id: string;
+  type: string;
+  approved: string;
+  slot?: string;
+  startTime?: string;
+  endTime?: string;
+  originalData: any;
+}
+
 export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  
-  // Separate transaction types
-  const regularTransactions: Record<string, any> = {};
-  const specialTransactions: Record<string, Record<string, any>> = {};
-  
-  Object.entries(transactions).forEach(([key, value]) => {
-    if (key === "FTRIAL-ID" || key === "REF-ID") {
-      specialTransactions[key] = value as Record<string, any>;
-    } else {
-      regularTransactions[key] = value;
-    }
+  const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
+  const [editedData, setEditedData] = useState<any>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; id: string; type: string}>({
+    open: false,
+    id: "",
+    type: ""
   });
   
-  // Filter and process transactions for display
-  const processedTransactions: Array<{
-    id: string;
-    type: string;
-    approved: string;
-    slot?: string;
-    startTime?: string;
-    endTime?: string;
-  }> = [];
-  
-  // Process regular transactions
-  Object.entries(regularTransactions).forEach(([transactionId, details]) => {
-    if (
-      (filterType === "all" || filterType === "regular") &&
-      (transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
-    ) {
-      const transaction = details as any;
-      processedTransactions.push({
-        id: transactionId,
-        type: "Regular",
-        approved: transaction.approved_at || "Unknown",
-        slot: transaction.slot_id,
-        startTime: transaction.start_time,
-        endTime: transaction.end_time
-      });
-    }
-  });
-  
-  // Process special transactions (free trials and referrals)
-  Object.entries(specialTransactions).forEach(([type, transactions]) => {
-    Object.entries(transactions).forEach(([transactionId, details]) => {
+  // Process transactions
+  const processTransactions = (): ProcessedTransaction[] => {
+    const processedTransactions: ProcessedTransaction[] = [];
+    
+    // Separate transaction types
+    const regularTransactions: Record<string, any> = {};
+    const specialTransactions: Record<string, Record<string, any>> = {};
+    
+    Object.entries(transactions).forEach(([key, value]) => {
+      if (key === "FTRIAL-ID" || key === "REF-ID") {
+        specialTransactions[key] = value as Record<string, any>;
+      } else {
+        regularTransactions[key] = value;
+      }
+    });
+    
+    // Process regular transactions
+    Object.entries(regularTransactions).forEach(([transactionId, details]) => {
       if (
-        (transactionId !== type + "-OTTONRENT") && // Skip counter entries
-        (filterType === "all" || 
-         (filterType === "freetrial" && type === "FTRIAL-ID") ||
-         (filterType === "referral" && type === "REF-ID")) &&
+        (filterType === "all" || filterType === "regular") &&
         (transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
       ) {
         const transaction = details as any;
         processedTransactions.push({
           id: transactionId,
-          type: type === "FTRIAL-ID" ? "Free Trial" : "Referral",
+          type: "Regular",
           approved: transaction.approved_at || "Unknown",
           slot: transaction.slot_id,
           startTime: transaction.start_time,
-          endTime: transaction.end_time
+          endTime: transaction.end_time,
+          originalData: transaction
         });
       }
     });
-  });
-  
-  // Sort transactions by approval date (newest first)
-  processedTransactions.sort((a, b) => 
-    new Date(b.approved).getTime() - new Date(a.approved).getTime()
-  );
-  
+    
+    // Process special transactions (free trials and referrals)
+    Object.entries(specialTransactions).forEach(([type, transactions]) => {
+      Object.entries(transactions).forEach(([transactionId, details]) => {
+        if (
+          (transactionId !== type + "-OTTONRENT") && // Skip counter entries
+          (filterType === "all" || 
+           (filterType === "freetrial" && type === "FTRIAL-ID") ||
+           (filterType === "referral" && type === "REF-ID")) &&
+          (transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
+        ) {
+          const transaction = details as any;
+          processedTransactions.push({
+            id: transactionId,
+            type: type === "FTRIAL-ID" ? "Free Trial" : "Referral",
+            approved: transaction.approved_at || "Unknown",
+            slot: transaction.slot_id,
+            startTime: transaction.start_time,
+            endTime: transaction.end_time,
+            originalData: transaction
+          });
+        }
+      });
+    });
+    
+    // Sort transactions by approval date (newest first)
+    return processedTransactions.sort((a, b) => 
+      new Date(b.approved).getTime() - new Date(a.approved).getTime()
+    );
+  };
+
+  const processedTransactions = processTransactions();
+
+  const handleEditTransaction = (transaction: ProcessedTransaction) => {
+    setEditingTransaction(transaction);
+    setEditedData({...transaction.originalData});
+  };
+
+  const handleSaveTransaction = async () => {
+    if (!editingTransaction || !editedData) return;
+    
+    const path = editingTransaction.type === "Regular" 
+      ? `/${editingTransaction.id}` 
+      : `/${editingTransaction.type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${editingTransaction.id}`;
+    
+    try {
+      await updateData(path, editedData);
+      toast.success("Transaction updated successfully");
+      setEditingTransaction(null);
+      setEditedData(null);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error("Failed to update transaction");
+    }
+  };
+
+  const handleDeleteTransaction = async (id: string, type: string) => {
+    const path = type === "Regular" 
+      ? `/${id}` 
+      : `/${type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${id}`;
+    
+    try {
+      await updateData(path, null);
+      toast.success("Transaction deleted successfully");
+      setDeleteConfirmation({open: false, id: "", type: ""});
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error("Failed to delete transaction");
+    }
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    if (!editedData) return;
+    
+    setEditedData({
+      ...editedData,
+      [field]: value
+    });
+  };
+
+  const formatDateTime = (dateString: string): string => {
+    try {
+      return format(new Date(dateString), "PPP p");
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 justify-between">
@@ -106,7 +200,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background">
               <SelectItem value="all">All Transactions</SelectItem>
               <SelectItem value="regular">Regular</SelectItem>
               <SelectItem value="freetrial">Free Trial</SelectItem>
@@ -119,7 +213,9 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <DataCard title="Total Transactions" className="text-center">
           <div className="py-4">
-            <span className="text-3xl font-bold">{Object.keys(regularTransactions).length}</span>
+            <span className="text-3xl font-bold">
+              {Object.keys(transactions).filter(key => key !== "FTRIAL-ID" && key !== "REF-ID").length}
+            </span>
             <p className="text-muted-foreground text-sm mt-1">Regular transactions</p>
           </div>
         </DataCard>
@@ -127,9 +223,10 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <DataCard title="Free Trials" className="text-center">
           <div className="py-4">
             <span className="text-3xl font-bold">
-              {specialTransactions["FTRIAL-ID"] ? 
-                (specialTransactions["FTRIAL-ID"]["FTRIAL-OTTONRENT"] as number || 0) : 
-                0}
+              {transactions["FTRIAL-ID"] && 
+               transactions["FTRIAL-ID"]["FTRIAL-ID-OTTONRENT"] ? 
+               (transactions["FTRIAL-ID"]["FTRIAL-ID-OTTONRENT"] as number || 0) : 
+               0}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Total claimed</p>
           </div>
@@ -138,7 +235,9 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <DataCard title="Referral Redemptions" className="text-center">
           <div className="py-4">
             <span className="text-3xl font-bold">
-              {Object.keys(specialTransactions["REF-ID"] || {}).length - 1}
+              {transactions["REF-ID"] ? 
+               Object.keys(transactions["REF-ID"]).filter(key => key !== "REF-ID-OTTONRENT").length : 
+               0}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Point redemptions</p>
           </div>
@@ -147,7 +246,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       
       <div className="glass-morphism rounded-lg overflow-hidden">
         {processedTransactions.length > 0 ? (
-          <div className="max-h-[500px] overflow-y-auto scrollbar-none">
+          <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -155,7 +254,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                   <TableHead>Type</TableHead>
                   <TableHead>Slot</TableHead>
                   <TableHead>Time Period</TableHead>
-                  <TableHead className="text-right">Approval Date</TableHead>
+                  <TableHead>Approval Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -182,8 +282,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                           <div className="flex items-center gap-1 mt-1">
                             <Clock className="h-3 w-3" />
                             <span>
-                              {new Date(transaction.startTime).toLocaleTimeString()} - 
-                              {new Date(transaction.endTime).toLocaleTimeString()}
+                              {format(new Date(transaction.startTime), "h:mm a")} - 
+                              {format(new Date(transaction.endTime), "h:mm a")}
                             </span>
                           </div>
                         </div>
@@ -191,14 +291,38 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                         "N/A"
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-xs">
-                      {transaction.approved !== "Unknown" ? new Date(transaction.approved).toLocaleString() : "Unknown"}
+                    <TableCell className="text-xs">
+                      {transaction.approved !== "Unknown" ? 
+                        format(new Date(transaction.approved), "PPP p") : 
+                        "Unknown"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditTransaction(transaction)}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => setDeleteConfirmation({
+                            open: true, 
+                            id: transaction.id,
+                            type: transaction.type
+                          })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ScrollArea>
         ) : (
           <EmptyState 
             title="No transactions found"
@@ -211,22 +335,123 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       <div>
         <h3 className="text-xl font-semibold mb-4">Used Order IDs</h3>
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <div className="p-4 max-h-[300px] overflow-y-auto scrollbar-none">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {Object.entries(usedOrderIds).map(([orderId, used]) => (
-                <div key={orderId} className="flex items-center justify-between p-2 rounded-md bg-white/5">
-                  <span className="text-sm truncate mr-2">{orderId}</span>
-                  {used ? (
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-yellow-400" />
-                  )}
-                </div>
-              ))}
+          <ScrollArea className="h-[200px]">
+            <div className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {Object.entries(usedOrderIds).map(([orderId, used]) => (
+                  <div key={orderId} className="flex items-center justify-between p-2 rounded-md bg-white/5">
+                    <span className="text-sm truncate mr-2">{orderId}</span>
+                    {used ? (
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-yellow-400" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </div>
+      
+      {/* Edit Transaction Dialog */}
+      {editingTransaction && editedData && (
+        <Dialog open={!!editingTransaction} onOpenChange={(open) => {
+          if (!open) {
+            setEditingTransaction(null);
+            setEditedData(null);
+          }
+        }}>
+          <DialogContent className="bg-background">
+            <DialogHeader>
+              <DialogTitle>Edit Transaction</DialogTitle>
+              <DialogDescription>
+                Update the details for transaction ID: {editingTransaction.id}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="slot-id">Slot ID</Label>
+                <Input
+                  id="slot-id"
+                  value={editedData.slot_id || ""}
+                  onChange={(e) => handleInputChange('slot_id', e.target.value)}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="start-time">Start Time</Label>
+                  <Input
+                    id="start-time"
+                    value={editedData.start_time || ""}
+                    onChange={(e) => handleInputChange('start_time', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="end-time">End Time</Label>
+                  <Input
+                    id="end-time"
+                    value={editedData.end_time || ""}
+                    onChange={(e) => handleInputChange('end_time', e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="approved-at">Approval Time</Label>
+                <Input
+                  id="approved-at"
+                  value={editedData.approved_at || ""}
+                  onChange={(e) => handleInputChange('approved_at', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setEditingTransaction(null);
+                setEditedData(null);
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveTransaction}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteConfirmation.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteConfirmation({...deleteConfirmation, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the transaction ID: {deleteConfirmation.id}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDeleteTransaction(deleteConfirmation.id, deleteConfirmation.type)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

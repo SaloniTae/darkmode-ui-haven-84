@@ -5,10 +5,9 @@ import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, AlertCircle } from "lucide-react";
+import { Edit, Save, Lock, Unlock, Check, X } from "lucide-react";
 import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -55,14 +54,25 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     title: "",
     description: ""
   });
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
 
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
+    
+    // Convert the string date to a Date object for the calendar
+    try {
+      const currentCred = editedCredentials[credKey as keyof typeof credentials];
+      setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
+    } catch (e) {
+      setSelectedDate(new Date());
+    }
   };
 
   const handleCancelEdit = () => {
     setEditedCredentials({ ...credentials });
     setEditingCredential(null);
+    setSelectedDate(undefined);
   };
 
   const handleSaveCredential = async (credKey: string) => {
@@ -70,6 +80,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       await updateData(`/${credKey}`, editedCredentials[credKey as keyof typeof credentials]);
       toast.success(`${credKey} updated successfully`);
       setEditingCredential(null);
+      setSelectedDate(undefined);
     } catch (error) {
       console.error(`Error updating ${credKey}:`, error);
       toast.error(`Failed to update ${credKey}`);
@@ -86,30 +97,35 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     });
   };
 
-  const toggleLockState = async (credKey: string) => {
+  const handleToggleLock = async (credKey: string) => {
+    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const newLockedValue = currentCred.locked === 0 ? 1 : 0;
+    
+    try {
+      await updateData(`/${credKey}/locked`, newLockedValue);
+      
+      setEditedCredentials({
+        ...editedCredentials,
+        [credKey]: {
+          ...currentCred,
+          locked: newLockedValue
+        }
+      });
+      
+      toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
+    } catch (error) {
+      console.error(`Error updating lock state for ${credKey}:`, error);
+      toast.error(`Failed to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}`);
+    }
+  };
+
+  const toggleLockState = (credKey: string) => {
     const currentCred = editedCredentials[credKey as keyof typeof credentials];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     setConfirmationDialog({
       open: true,
-      action: async () => {
-        try {
-          await updateData(`/${credKey}/locked`, newLockedValue);
-          
-          setEditedCredentials({
-            ...editedCredentials,
-            [credKey]: {
-              ...currentCred,
-              locked: newLockedValue
-            }
-          });
-          
-          toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
-        } catch (error) {
-          console.error(`Error updating lock state for ${credKey}:`, error);
-          toast.error(`Failed to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}`);
-        }
-      },
+      action: () => handleToggleLock(credKey),
       title: `${newLockedValue === 1 ? 'Lock' : 'Unlock'} ${credKey}`,
       description: `Are you sure you want to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}?`
     });
@@ -125,10 +141,17 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
 
   const handleDateSelect = (credKey: string, date: Date | undefined) => {
     if (date) {
+      setSelectedDate(date);
       const formattedDate = format(date, 'yyyy-MM-dd');
       handleInputChange(credKey, 'expiry_date', formattedDate);
     }
   };
+
+  // Generate hours for the time picker (12-hour format)
+  const hoursOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  // Generate minutes for the time picker (all minutes, not just 15-minute intervals)
+  const minutesOptions = Array.from({ length: 60 }, (_, i) => i);
 
   return (
     <div className="space-y-6">
@@ -162,7 +185,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                         <Label htmlFor={`${credKey}-password`}>Password</Label>
                         <Input
                           id={`${credKey}-password`}
-                          type="text" // Changed from password type for editing
+                          type="text"
                           value={currentCred.password}
                           onChange={(e) => handleInputChange(credKey, 'password', e.target.value)}
                         />
@@ -177,7 +200,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                           <SelectTrigger id={`${credKey}-slot`}>
                             <SelectValue placeholder="Select slot" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background border border-input">
                             {Object.keys(slots).map((slotKey) => (
                               <SelectItem key={slotKey} value={slotKey}>{slotKey}</SelectItem>
                             ))}
@@ -200,13 +223,13 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                                 <Calendar className="h-4 w-4" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
+                            <PopoverContent className="w-auto p-0 bg-popover">
                               <Calendar
                                 mode="single"
-                                selected={parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date())}
+                                selected={selectedDate}
                                 onSelect={(date) => handleDateSelect(credKey, date)}
                                 initialFocus
-                                className="pointer-events-auto"
+                                className="bg-background"
                               />
                             </PopoverContent>
                           </Popover>
@@ -233,6 +256,27 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                             onChange={(e) => handleInputChange(credKey, 'usage_count', parseInt(e.target.value))}
                           />
                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="flex items-center gap-2">
+                          Lock Status:
+                          <button
+                            onClick={() => handleInputChange(credKey, 'locked', currentCred.locked === 0 ? 1 : 0)}
+                            className={cn(
+                              "flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                              currentCred.locked === 0 
+                                ? "bg-green-500 text-white hover:bg-green-600" 
+                                : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                            )}
+                          >
+                            {currentCred.locked === 0 ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              <X className="w-4 h-4" />
+                            )}
+                          </button>
+                        </Label>
                       </div>
                     </div>
                     
@@ -318,7 +362,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-background">
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmationDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -330,6 +374,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
             <AlertDialogAction 
               onClick={async () => {
                 await confirmationDialog.action();
+                setConfirmationDialog({...confirmationDialog, open: false});
               }}
             >
               Confirm

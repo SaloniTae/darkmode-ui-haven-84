@@ -6,10 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, Plus, Award, User, Users } from "lucide-react";
+import { Edit, Save, Plus, Award, User, Users, Trash2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ReferralsPanelProps {
   referrals: { [key: string]: Referral };
@@ -21,6 +40,12 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [editedSettings, setEditedSettings] = useState<ReferralSettings>({ ...referralSettings });
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingReferral, setEditingReferral] = useState<string | null>(null);
+  const [editedReferral, setEditedReferral] = useState<Referral | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; userId: string}>({
+    open: false,
+    userId: ""
+  });
 
   const handleSaveSettings = async () => {
     try {
@@ -40,10 +65,49 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
     });
   };
 
+  const handleEditReferral = (userId: string, referral: Referral) => {
+    setEditingReferral(userId);
+    setEditedReferral({...referral});
+  };
+
+  const handleReferralChange = (field: keyof Referral, value: any) => {
+    if (!editedReferral) return;
+    
+    setEditedReferral({
+      ...editedReferral,
+      [field]: value
+    });
+  };
+
+  const handleSaveReferral = async () => {
+    if (!editingReferral || !editedReferral) return;
+    
+    try {
+      await updateData(`/referrals/${editingReferral}`, editedReferral);
+      toast.success("Referral updated successfully");
+      setEditingReferral(null);
+      setEditedReferral(null);
+    } catch (error) {
+      console.error("Error updating referral:", error);
+      toast.error("Failed to update referral");
+    }
+  };
+
+  const handleDeleteReferral = async (userId: string) => {
+    try {
+      await updateData(`/referrals/${userId}`, null);
+      toast.success("Referral deleted successfully");
+      setDeleteConfirmation({open: false, userId: ""});
+    } catch (error) {
+      console.error("Error deleting referral:", error);
+      toast.error("Failed to delete referral");
+    }
+  };
+
   // Filter referrals based on search term
   const filteredReferrals = Object.entries(referrals).filter(([userId, referral]) =>
-    userId.includes(searchTerm) || 
-    referral.referral_code.includes(searchTerm)
+    userId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    referral.referral_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Sort referrals by points (highest first)
@@ -158,7 +222,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
         
         <DataCard title="Free Trial Claims" className="md:col-span-2">
           <div className="space-y-4">
-            <div className="max-h-[200px] overflow-y-auto">
+            <ScrollArea className="h-[200px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -187,7 +251,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </ScrollArea>
           </div>
         </DataCard>
       </div>
@@ -205,7 +269,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
         </div>
         
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <div className="max-h-[500px] overflow-y-auto scrollbar-none">
+          <ScrollArea className="h-[400px]">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -239,9 +303,22 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditReferral(userId, referral)}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => setDeleteConfirmation({open: true, userId})}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -254,9 +331,120 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                 )}
               </TableBody>
             </Table>
-          </div>
+          </ScrollArea>
         </div>
       </div>
+      
+      {/* Edit Referral Dialog */}
+      {editedReferral && (
+        <Dialog open={!!editingReferral} onOpenChange={(open) => {
+          if (!open) {
+            setEditingReferral(null);
+            setEditedReferral(null);
+          }
+        }}>
+          <DialogContent className="bg-background">
+            <DialogHeader>
+              <DialogTitle>Edit Referral</DialogTitle>
+              <DialogDescription>
+                Update the referral details for user ID: {editingReferral}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="referral-code">Referral Code</Label>
+                <Input
+                  id="referral-code"
+                  value={editedReferral.referral_code}
+                  onChange={(e) => handleReferralChange('referral_code', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="referral-points">Referral Points</Label>
+                <Input
+                  id="referral-points"
+                  type="number"
+                  value={editedReferral.referral_points}
+                  onChange={(e) => handleReferralChange('referral_points', parseInt(e.target.value))}
+                />
+              </div>
+              
+              {editedReferral.referred_users && (
+                <div className="space-y-2">
+                  <Label>Referred Users</Label>
+                  <div className="bg-background/50 p-2 border rounded-md max-h-[150px] overflow-y-auto">
+                    {editedReferral.referred_users.length > 0 ? (
+                      <div className="space-y-1">
+                        {editedReferral.referred_users.map((user, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-1.5 bg-background/80 rounded">
+                            <span className="text-sm">{user}</span>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                const newUsers = [...editedReferral.referred_users as (string | number)[]];
+                                newUsers.splice(idx, 1);
+                                handleReferralChange('referred_users', newUsers);
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">No referred users</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setEditingReferral(null);
+                setEditedReferral(null);
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveReferral}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteConfirmation.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteConfirmation({...deleteConfirmation, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Referral?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the referral for user ID: {deleteConfirmation.userId}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDeleteReferral(deleteConfirmation.userId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
