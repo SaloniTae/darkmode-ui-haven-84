@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Prevent unnecessary refetching
       retry: 1, // Limit retries to reduce network requests
       staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-      gcTime: 10 * 60 * 1000, // Cache for 10 minutes (replaces cacheTime)
+      cacheTime: 10 * 60 * 1000, // Cache for 10 minutes
     },
   },
 });
