@@ -9,12 +9,12 @@ import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
 import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, ShoppingBag } from "lucide-react";
 import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
-export default function Admin() {
+export default function PrimeDashboard() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
 
@@ -24,10 +24,10 @@ export default function Admin() {
         setLoading(true);
         const data = await fetchData("/");
         setDbData(data);
-        toast.success("Database loaded successfully");
+        toast.success("Prime Video database loaded successfully");
       } catch (error) {
         console.error("Error loading database:", error);
-        toast.error("Failed to load database");
+        toast.error("Failed to load Prime Video database");
       } finally {
         setLoading(false);
       }
@@ -40,8 +40,8 @@ export default function Admin() {
     return (
       <MainLayout className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <h2 className="text-xl font-medium">Loading database...</h2>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#00A8E1]" />
+          <h2 className="text-xl font-medium">Loading Prime Video database...</h2>
         </div>
       </MainLayout>
     );
@@ -52,7 +52,7 @@ export default function Admin() {
       <MainLayout>
         <div className="glass-morphism p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Database Error</h2>
-          <p className="text-red-400">Failed to load database. Please check your connection and try again.</p>
+          <p className="text-red-400">Failed to load Prime Video database. Please check your connection and try again.</p>
         </div>
       </MainLayout>
     );
@@ -61,18 +61,18 @@ export default function Admin() {
   return (
     <MainLayout>
       <div className="space-y-8">
-        <div className="glass-morphism p-6 rounded-lg" style={{ background: "linear-gradient(to right, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05))" }}>
+        <div className="glass-morphism p-6 rounded-lg" style={{ background: "linear-gradient(to right, rgba(0, 168, 225, 0.1), rgba(0, 168, 225, 0.05))" }}>
           <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-primary" />
+            <ShoppingBag className="h-8 w-8 text-[#00A8E1]" />
             <div>
-              <h1 className="text-3xl font-bold text-gradient mb-2">Firebase Admin Dashboard</h1>
-              <p className="text-muted-foreground">Manage your streaming account systems</p>
+              <h1 className="text-3xl font-bold text-gradient mb-2" style={{ background: "linear-gradient(to right, #00A8E1, #4FC3F7)" }}>Prime Video Dashboard</h1>
+              <p className="text-muted-foreground">Manage your Amazon Prime Video account system</p>
             </div>
           </div>
         </div>
 
         <Tabs defaultValue="admin" className="w-full">
-          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg" style={{ background: "linear-gradient(to right, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05))" }}>
+          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg" style={{ background: "linear-gradient(to right, rgba(0, 168, 225, 0.1), rgba(0, 168, 225, 0.05))" }}>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="admin">Admins</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="credentials">Credentials</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="slots">Slots</TabsTrigger>
