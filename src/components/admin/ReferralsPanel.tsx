@@ -222,7 +222,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
         
         <DataCard title="Free Trial Claims" className="md:col-span-2">
           <div className="space-y-4">
-            <ScrollArea className="h-[200px]">
+            <div className="overflow-auto" style={{ maxHeight: '200px' }}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -251,7 +251,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           </div>
         </DataCard>
       </div>
@@ -269,7 +269,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
         </div>
         
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <ScrollArea className="h-[400px]">
+          <div className="overflow-auto" style={{ maxHeight: '400px' }}>
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -331,7 +331,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                 )}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </div>
       </div>
       

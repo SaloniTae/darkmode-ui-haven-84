@@ -56,6 +56,10 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
     id: "",
     type: ""
   });
+  const [deleteOrderIdConfirmation, setDeleteOrderIdConfirmation] = useState<{open: boolean; orderId: string}>({
+    open: false,
+    orderId: ""
+  });
   
   const processTransactions = (): ProcessedTransaction[] => {
     const processedTransactions: ProcessedTransaction[] = [];
@@ -238,7 +242,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       
       <div className="glass-morphism rounded-lg overflow-hidden">
         {processedTransactions.length > 0 ? (
-          <ScrollArea className="h-[400px]" orientation="both">
+          <div className="overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
@@ -314,7 +318,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                 ))}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         ) : (
           <EmptyState 
             title="No transactions found"
@@ -327,22 +331,33 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       <div>
         <h3 className="text-xl font-semibold mb-4">Used Order IDs</h3>
         <div className="glass-morphism rounded-lg overflow-hidden">
-          <ScrollArea className="h-[200px]" orientation="both">
-            <div className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {Object.entries(usedOrderIds).map(([orderId, used]) => (
-                  <div key={orderId} className="flex items-center justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-sm truncate mr-2">{orderId}</span>
+          <div className="overflow-auto p-4" style={{ maxHeight: '200px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {Object.entries(usedOrderIds).map(([orderId, used]) => (
+                <div key={orderId} className="flex items-center justify-between p-2 rounded-md bg-white/5">
+                  <span className="text-sm truncate mr-2">{orderId}</span>
+                  <div className="flex gap-1">
                     {used ? (
                       <CheckCircle className="h-4 w-4 text-green-400" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-yellow-400" />
                     )}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                      onClick={() => setDeleteOrderIdConfirmation({
+                        open: true,
+                        orderId
+                      })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
       
@@ -436,6 +451,44 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => handleDeleteTransaction(deleteConfirmation.id, deleteConfirmation.type)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog 
+        open={deleteOrderIdConfirmation.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteOrderIdConfirmation({...deleteOrderIdConfirmation, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order ID?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the Order ID: {deleteOrderIdConfirmation.orderId}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                const path = `/used_orderids/${deleteOrderIdConfirmation.orderId}`;
+                updateData(path, null)
+                  .then(() => {
+                    toast.success("Order ID deleted successfully");
+                    setDeleteOrderIdConfirmation({open: false, orderId: ""});
+                  })
+                  .catch((error) => {
+                    console.error("Error deleting Order ID:", error);
+                    toast.error("Failed to delete Order ID");
+                  });
+              }}
             >
               Delete
             </AlertDialogAction>
