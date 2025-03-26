@@ -7,8 +7,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
-// Lazy load the Admin page to improve initial loading performance
+// Lazy load pages to improve initial loading performance
 const Admin = lazy(() => import("./pages/Admin"));
+const Index = lazy(() => import("./pages/Index"));
 
 // Create a new QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -35,7 +36,9 @@ const App = memo(() => (
           </div>
         }>
           <Routes>
-            <Route path="*" element={<Admin />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/admin/*" element={<Admin />} />
+            <Route path="*" element={<Index />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
