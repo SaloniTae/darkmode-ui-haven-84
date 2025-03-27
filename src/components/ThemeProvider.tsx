@@ -20,13 +20,33 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+// Safe localStorage accessor function to handle cases where localStorage is unavailable
+const getStorageItem = (key: string, fallback: any): any => {
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch (error) {
+    console.warn("localStorage is not available:", error);
+    return fallback;
+  }
+};
+
+// Safe localStorage setter function
+const setStorageItem = (key: string, value: any): void => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("localStorage is not available for writing:", error);
+  }
+};
+
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("theme") as Theme) || defaultTheme
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    return getStorageItem("theme", defaultTheme) as Theme;
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -42,7 +62,7 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme);
-    localStorage.setItem("theme", theme);
+    setStorageItem("theme", theme);
   }, [theme]);
 
   const value = {
