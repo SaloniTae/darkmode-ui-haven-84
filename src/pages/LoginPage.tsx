@@ -8,10 +8,21 @@ import { CrunchyrollLogin } from "@/components/auth/CrunchyrollLogin";
 import { NetflixLogin } from "@/components/auth/NetflixLogin";
 import { PrimeLogin } from "@/components/auth/PrimeLogin";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [selectedService, setSelectedService] = useState<"crunchyroll" | "netflix" | "prime">("crunchyroll");
   const { theme } = useTheme();
+  const { isAuthenticated, service } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (isAuthenticated && service) {
+      navigate(`/${service}`);
+    }
+  }, [isAuthenticated, service, navigate]);
 
   // Animation classes based on current theme
   const getGlassClass = () => {
@@ -59,14 +70,14 @@ export default function LoginPage() {
   
   // Navigate between tabs
   const navigateToLoginTab = () => {
-    const loginTabTrigger = document.querySelector('button[value="login"]') as HTMLButtonElement;
+    const loginTabTrigger = document.querySelector('button[value="login"]') as HTMLButtonElement | null;
     if (loginTabTrigger) {
       loginTabTrigger.click();
     }
   };
   
   const navigateToSelectTab = () => {
-    const selectTabTrigger = document.querySelector('button[value="select"]') as HTMLButtonElement;
+    const selectTabTrigger = document.querySelector('button[value="select"]') as HTMLButtonElement | null;
     if (selectTabTrigger) {
       selectTabTrigger.click();
     }

@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export const UserSettingsMenu = () => {
-  const { logout, user, updateUsername, updatePassword } = useAuth();
+  const { logout, user, updateUsername, updatePassword, user_metadata, email } = useAuth();
   const [showUsernameDialog, setShowUsernameDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -89,6 +89,9 @@ export const UserSettingsMenu = () => {
     }
   };
 
+  // Get the display name from either user_metadata or the user string
+  const displayName = user_metadata?.username || email || user;
+
   return (
     <>
       <Menubar className="border-none bg-transparent">
@@ -99,7 +102,7 @@ export const UserSettingsMenu = () => {
           <MenubarContent align="end" className="min-w-[200px]">
             <MenubarItem disabled className="font-medium">
               <User className="mr-2 h-4 w-4" />
-              {user?.user_metadata?.username || user?.email}
+              {displayName}
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => setShowUsernameDialog(true)}>
