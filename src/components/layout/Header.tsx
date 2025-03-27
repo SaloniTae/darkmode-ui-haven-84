@@ -222,11 +222,11 @@ export const Header = memo(function Header() {
 
       {/* Username Change Dialog */}
       <Dialog open={showUserDialog} onOpenChange={handleUserDialogClose}>
-        <DialogContent>
+        <DialogContent className="space-y-6">
           <DialogHeader>
             <DialogTitle>Change Username</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">New Username</Label>
               <Input 
@@ -237,7 +237,7 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setShowUserDialog(false)}>
               Cancel
             </Button>
@@ -250,11 +250,11 @@ export const Header = memo(function Header() {
 
       {/* Password Change Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={handlePasswordDialogClose}>
-        <DialogContent>
+        <DialogContent className="space-y-6">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <Input 
@@ -266,7 +266,7 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
               Cancel
             </Button>
