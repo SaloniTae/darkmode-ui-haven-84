@@ -1,154 +1,56 @@
 
-import { useState, useEffect, memo } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
-import { useAuth } from "@/context/AuthContext";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { UserSettingsMenu } from "@/components/UserSettingsMenu";
+import { UserSettingsDropdown } from "@/components/UserSettingsDropdown";
+import { useParams } from "react-router-dom";
 
-export const Header = memo(function Header() {
-  const [scrolled, setScrolled] = useState(false);
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
+export function Header() {
+  const { service } = useParams();
+  
+  const getServiceName = () => {
+    switch (service) {
+      case "crunchyroll":
+        return "Crunchyroll";
+      case "netflix":
+        return "Netflix";
+      case "prime":
+        return "Prime";
+      default:
+        return "Admin";
+    }
   };
 
-  // Determine which service logo to show based on the current route
-  const getCurrentService = () => {
-    if (location.pathname.includes('/netflix')) return 'netflix';
-    if (location.pathname.includes('/prime')) return 'prime';
-    return 'crunchyroll';
+  const getServiceColor = () => {
+    switch (service) {
+      case "crunchyroll":
+        return "text-[#F47521]";
+      case "netflix":
+        return "text-[#E50914]";
+      case "prime":
+        return "text-[#00A8E1]";
+      default:
+        return "text-primary";
+    }
   };
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-3 px-4",
-        scrolled ? "glass-morphism" : "bg-transparent"
-      )}
-    >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="font-medium text-lg flex items-center gap-2">
-          <Logo size="md" service={getCurrentService()} />
-          <span className="text-gradient font-bold hidden md:inline-block">
-            Admin Dashboard
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-1 md:space-x-4">
-          {isAuthenticated && (
-            <>
-              {/* Desktop Navigation */}
-              <nav className="mr-2 hidden md:block">
-                <ul className="flex items-center space-x-1 md:space-x-2">
-                  <li>
-                    <Link
-                      to="/crunchyroll"
-                      className={cn(
-                        "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                        isActive("/crunchyroll")
-                          ? "bg-primary/20 text-primary"
-                          : "hover:bg-primary/10 text-primary/80"
-                      )}
-                    >
-                      Crunchyroll
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/netflix"
-                      className={cn(
-                        "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                        isActive("/netflix")
-                          ? "bg-primary/20 text-primary"
-                          : "hover:bg-primary/10 text-primary/80"
-                      )}
-                    >
-                      Netflix
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/prime"
-                      className={cn(
-                        "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                        isActive("/prime")
-                          ? "bg-primary/20 text-primary"
-                          : "hover:bg-primary/10 text-primary/80"
-                      )}
-                    >
-                      Prime
-                    </Link>
-                  </li>
-                </ul>
-              </nav>
-
-              {/* Mobile Navigation */}
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild className="md:hidden">
-                  <Button variant="ghost" size="sm">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right">
-                  <div className="flex flex-col space-y-4 mt-8">
-                    <Link 
-                      to="/crunchyroll" 
-                      className={cn(
-                        "px-4 py-2 rounded-md text-lg transition-colors",
-                        isActive("/crunchyroll") ? "bg-primary/20 text-primary" : "hover:bg-primary/10"
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Crunchyroll
-                    </Link>
-                    <Link 
-                      to="/netflix" 
-                      className={cn(
-                        "px-4 py-2 rounded-md text-lg transition-colors",
-                        isActive("/netflix") ? "bg-primary/20 text-primary" : "hover:bg-primary/10"
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Netflix
-                    </Link>
-                    <Link 
-                      to="/prime" 
-                      className={cn(
-                        "px-4 py-2 rounded-md text-lg transition-colors",
-                        isActive("/prime") ? "bg-primary/20 text-primary" : "hover:bg-primary/10"
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Prime
-                    </Link>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </>
-          )}
-          
-          <div className="flex items-center gap-2">
-            {isAuthenticated && <UserSettingsMenu />}
-            <ThemeToggle />
+    <header className="border-b sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <div className="flex items-center gap-2 md:gap-3">
+          <Logo service={service as "crunchyroll" | "netflix" | "prime" | undefined} />
+          <div className="hidden md:block">
+            <h1 className={`text-xl font-bold ${getServiceColor()}`}>
+              {getServiceName()} Admin
+            </h1>
           </div>
+        </div>
+        <div className="ml-auto flex items-center space-x-4">
+          <UserSettingsDropdown />
+          <ThemeToggle />
+          <UserSettingsMenu />
         </div>
       </div>
     </header>
   );
-});
+}
