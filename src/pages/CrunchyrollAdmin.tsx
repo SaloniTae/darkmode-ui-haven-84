@@ -9,6 +9,7 @@ import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
 import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
 import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
@@ -57,8 +58,9 @@ export default function CrunchyrollAdmin() {
       <div className="space-y-8">
         <h1 className="text-3xl font-bold">Crunchyroll Admin Dashboard</h1>
 
-        <Tabs defaultValue="admin" className="w-full">
-          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg">
+        <Tabs defaultValue="tokens" className="w-full">
+          <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-8 h-auto p-1 glass-morphism shadow-lg">
+            <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="tokens">Tokens</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="admin">Admins</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="credentials">Credentials</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="slots">Slots</TabsTrigger>
@@ -67,6 +69,10 @@ export default function CrunchyrollAdmin() {
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="uiconfig">UI Config</TabsTrigger>
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="users">Users</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="tokens" className="mt-0">
+            <TokenGenerator />
+          </TabsContent>
           
           <TabsContent value="admin" className="mt-0">
             <AdminPanel adminConfig={dbData.admin_config} />

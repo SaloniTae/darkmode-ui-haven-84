@@ -9,13 +9,13 @@ import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { SetupAdmin } from "@/components/auth/SetupAdmin";
 
 // Lazy load pages to improve initial loading performance
 const CrunchyrollAdmin = lazy(() => import("./pages/CrunchyrollAdmin"));
 const NetflixAdmin = lazy(() => import("./pages/NetflixAdmin"));
 const PrimeAdmin = lazy(() => import("./pages/PrimeAdmin"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
-const Index = lazy(() => import("./pages/Index"));
 
 // Create a new QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -38,6 +38,7 @@ const App = memo(() => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <SetupAdmin />
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
