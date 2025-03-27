@@ -1,157 +1,212 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
+
+type ServiceType = "crunchyroll" | "netflix" | "prime";
 
 interface AuthContextType {
-  user: string | null;
-  service: string | null;
-  currentService: string | null; // Added for ProtectedRoute
-  login: (username: string, password: string, service: string) => void;
-  logout: () => Promise<void>;
   isAuthenticated: boolean;
-  updateUsername: (newUsername: string) => Promise<void>; // Added for UserSettingsMenu
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>; // Added for UserSettingsMenu
-  generateToken: (service: string) => Promise<string>; // Added for TokenGenerator
-  user_metadata?: { // Added for UserSettingsMenu
-    username?: string;
-  };
-  email?: string; // Added for UserSettingsMenu
+  currentService: ServiceType | null;
+  user: User | null;
+  session: Session | null;
+  login: (username: string, password: string, service: ServiceType) => Promise<void>;
+  signup: (username: string, password: string, token: string, service: ServiceType) => Promise<void>;
+  logout: () => Promise<void>;
+  generateToken: (service: ServiceType) => Promise<string | null>;
+  isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  service: null,
-  currentService: null,
-  login: () => {},
-  logout: async () => {},
-  isAuthenticated: false,
-  updateUsername: async () => {},
-  updatePassword: async () => {},
-  generateToken: async () => "",
-  user_metadata: { username: undefined },
-  email: undefined
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<string | null>(localStorage.getItem("user"));
-  const [service, setService] = useState<string | null>(localStorage.getItem("service"));
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("user"));
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentService, setCurrentService] = useState<ServiceType | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
+  // Initialize auth state
   useEffect(() => {
-    // Check if user is in localStorage on mount
-    const storedUser = localStorage.getItem("user");
-    const storedService = localStorage.getItem("service");
-    if (storedUser && storedService) {
-      setUser(storedUser);
-      setService(storedService);
-      setIsAuthenticated(true);
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+        
+        // Get service from metadata
+        const service = session?.user?.user_metadata?.service as ServiceType;
+        setCurrentService(service || null);
+        setIsAdmin(service === 'crunchyroll');
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session);
+      
+      const service = session?.user?.user_metadata?.service as ServiceType;
+      setCurrentService(service || null);
+      setIsAdmin(service === 'crunchyroll');
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (username: string, password: string, service: string) => {
-    // Implement proper auth validation later
-    if (username && password) {
-      localStorage.setItem("user", username);
-      localStorage.setItem("service", service);
-      setUser(username);
-      setService(service);
-      setIsAuthenticated(true);
-      
-      toast.success(`Logged in successfully to ${service}`);
-      
-      // Redirect based on service
-      switch (service) {
-        case "crunchyroll":
-          navigate("/crunchyroll");
-          break;
-        case "netflix":
-          navigate("/netflix");
-          break;
-        case "prime":
-          navigate("/prime");
-          break;
-        default:
-          navigate("/");
+  // Handle redirect on auth state change
+  useEffect(() => {
+    if (isAuthenticated && currentService) {
+      const from = location.state?.from?.pathname || `/${currentService}`;
+      navigate(from, { replace: true });
+    } else if (!isAuthenticated && location.pathname !== '/login') {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, currentService, navigate, location]);
+
+  const login = async (username: string, password: string, service: ServiceType) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@example.com`, // Using username@example.com as email format
+        password,
+      });
+
+      if (error) {
+        throw error;
       }
-    } else {
-      toast.error("Invalid credentials");
+
+      if (data.user?.user_metadata?.service !== service) {
+        await supabase.auth.signOut();
+        toast.error(`You are not authorized to access the ${service} dashboard`);
+        return;
+      }
+
+      toast.success(`Logged in to ${service} dashboard successfully!`);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Failed to login");
     }
   };
 
-  const logout = async (): Promise<void> => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("service");
-    setUser(null);
-    setService(null);
-    setIsAuthenticated(false);
-    toast.success("Logged out successfully");
-    navigate("/");
-  };
+  const signup = async (username: string, password: string, token: string, service: ServiceType) => {
+    try {
+      // First verify token
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('tokens')
+        .select('*')
+        .eq('token', token)
+        .eq('service', service)
+        .eq('used', false)
+        .single();
 
-  // New functions to implement the missing functionality
-  const updateUsername = async (newUsername: string): Promise<void> => {
-    // In a real implementation, this would call to a backend API
-    // Here we just update localStorage for the demo
-    if (newUsername) {
-      localStorage.setItem("user", newUsername);
-      setUser(newUsername);
-      toast.success("Username updated successfully");
-    } else {
-      throw new Error("Username cannot be empty");
+      if (tokenError || !tokenData) {
+        toast.error("Invalid or expired token");
+        return;
+      }
+
+      // Register user
+      const { data, error } = await supabase.auth.signUp({
+        email: `${username}@example.com`, // Using username@example.com as email format
+        password,
+        options: {
+          data: {
+            username,
+            service
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Mark token as used
+      await supabase
+        .from('tokens')
+        .update({ used: true })
+        .eq('id', tokenData.id);
+
+      toast.success(`Signed up to ${service} dashboard successfully!`);
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(error.message || "Failed to signup");
     }
   };
 
-  const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-    // In a real implementation, this would validate the current password
-    // and update it in the backend
-    // Here we just show a success message for the demo
-    if (currentPassword && newPassword) {
-      toast.success("Password updated successfully");
-    } else {
-      throw new Error("Password cannot be empty");
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      setCurrentService(null);
+      setUser(null);
+      setSession(null);
+      navigate("/login");
+      toast.info("Logged out successfully");
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      toast.error(error.message || "Failed to logout");
     }
   };
 
-  const generateToken = async (service: string): Promise<string> => {
-    // In a real implementation, this would generate a token in the backend
-    // Here we just return a mock token for the demo
-    const mockToken = `${service}_${Math.random().toString(36).substring(2, 15)}`;
-    toast.success(`Generated token for ${service}`);
-    return mockToken;
-  };
+  const generateToken = async (service: ServiceType): Promise<string | null> => {
+    try {
+      if (currentService !== 'crunchyroll') {
+        toast.error("Only Crunchyroll admin can generate tokens");
+        return null;
+      }
 
-  // Create a user object with metadata for compatibility with the UserSettingsMenu
-  const userWithMetadata = {
-    user_metadata: {
-      username: user
-    },
-    email: user
+      const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      const { error } = await supabase
+        .from('tokens')
+        .insert([
+          { 
+            token, 
+            service,
+            created_by: user?.id
+          }
+        ]);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`Generated token for ${service}`);
+      return token;
+    } catch (error: any) {
+      console.error("Token generation error:", error);
+      toast.error(error.message || "Failed to generate token");
+      return null;
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        service,
-        currentService: service, // Map service to currentService for ProtectedRoute
-        login,
-        logout,
-        isAuthenticated,
-        updateUsername,
-        updatePassword,
-        generateToken,
-        ...userWithMetadata // Spread the metadata for UserSettingsMenu compatibility
-      }}
-    >
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      currentService, 
+      user,
+      session,
+      login, 
+      signup,
+      logout,
+      generateToken,
+      isAdmin
+    }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

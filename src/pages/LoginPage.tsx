@@ -1,169 +1,266 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { CrunchyrollLogin } from "@/components/auth/CrunchyrollLogin";
-import { NetflixLogin } from "@/components/auth/NetflixLogin";
-import { PrimeLogin } from "@/components/auth/PrimeLogin";
-import { useTheme } from "@/components/ThemeProvider";
-import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+type ServiceType = "crunchyroll" | "netflix" | "prime";
+
+// Admin credentials for initial setup
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin1234";
 
 export default function LoginPage() {
-  const [selectedService, setSelectedService] = useState<"crunchyroll" | "netflix" | "prime">("crunchyroll");
-  const { theme } = useTheme();
-  const { isAuthenticated, service } = useAuth();
-  const navigate = useNavigate();
+  const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [token, setToken] = useState("");
+  const { login, signup } = useAuth();
 
-  // Redirect authenticated users to their dashboard
-  useEffect(() => {
-    if (isAuthenticated && service) {
-      navigate(`/${service}`);
-    }
-  }, [isAuthenticated, service, navigate]);
-
-  // Animation classes based on current theme
-  const getGlassClass = () => {
-    switch (theme) {
-      case "dark":
-        return "glass-morphism bg-black/40";
-      case "light":
-        return "bg-white/90 shadow-lg border border-gray-200";
-      default:
-        return window.matchMedia('(prefers-color-scheme: dark)').matches 
-          ? "glass-morphism bg-black/40" 
-          : "bg-white/90 shadow-lg border border-gray-200";
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // For Crunchyroll admin, use hardcoded credentials for now
+    if (selectedService === "crunchyroll") {
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        await login(username, password, selectedService);
+      } else {
+        await login(username, password, selectedService);
+      }
+    } else {
+      await login(username, password, selectedService);
     }
   };
 
-  const getServiceColor = (service: string) => {
-    switch (service) {
-      case "crunchyroll":
-        return "text-[#F47521]";
-      case "netflix":
-        return "text-[#E50914]";
-      case "prime":
-        return "text-[#00A8E1]";
-      default:
-        return "";
-    }
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    await signup(username, password, token, selectedService!);
   };
 
-  const getServiceBgColor = (service: string) => {
-    switch (service) {
-      case "crunchyroll":
-        return "bg-[#F47521]/10";
-      case "netflix":
-        return "bg-[#E50914]/10";
-      case "prime":
-        return "bg-[#00A8E1]/10";
-      default:
-        return "";
-    }
-  };
-
-  const handleServiceSelect = (service: "crunchyroll" | "netflix" | "prime") => {
+  const handleServiceSelect = (service: ServiceType) => {
     setSelectedService(service);
+    setUsername("");
+    setPassword("");
+    setToken("");
+    setActiveTab("login");
   };
-  
-  // Navigate between tabs
-  const navigateToLoginTab = () => {
-    const loginTabTrigger = document.querySelector('button[value="login"]') as HTMLButtonElement | null;
-    if (loginTabTrigger) {
-      loginTabTrigger.click();
+
+  // Get service color for styling
+  const getServiceColor = (service: ServiceType) => {
+    switch (service) {
+      case "crunchyroll": return "#F47521";
+      case "netflix": return "#E50914";
+      case "prime": return "#00A8E1";
+      default: return "#F47521";
     }
   };
-  
-  const navigateToSelectTab = () => {
-    const selectTabTrigger = document.querySelector('button[value="select"]') as HTMLButtonElement | null;
-    if (selectTabTrigger) {
-      selectTabTrigger.click();
+
+  // Get service name for display
+  const getServiceName = (service: ServiceType) => {
+    switch (service) {
+      case "crunchyroll": return "Crunchyroll";
+      case "netflix": return "Netflix";
+      case "prime": return "Prime Video";
+      default: return "Service";
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden relative animate-fade-in">
-      {/* Background effect */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-background to-background/80" />
-      </div>
-
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-
-      <div className={`w-full max-w-md p-6 rounded-xl ${getGlassClass()}`}>
-        <Tabs defaultValue="select" className="w-full">
-          <TabsList className="w-full mb-6 grid grid-cols-2 h-auto p-1 glass-morphism shadow-lg">
-            <TabsTrigger value="select">Select Dashboard</TabsTrigger>
-            <TabsTrigger value="login">Login</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="select" className="mt-0 space-y-6">
-            <h1 className="text-2xl font-bold text-center mb-6">Select Dashboard</h1>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <Button 
-                onClick={() => handleServiceSelect("crunchyroll")}
-                variant="outline"
-                className={`flex flex-col items-center justify-center p-6 h-auto transition-all ${
-                  selectedService === "crunchyroll" ? `ring-2 ring-[#F47521] ${getServiceBgColor("crunchyroll")}` : ""
-                }`}
-              >
-                <Logo service="crunchyroll" size="lg" />
-                <span className={`mt-2 font-medium ${getServiceColor("crunchyroll")}`}>Crunchyroll</span>
-              </Button>
-              
-              <Button 
-                onClick={() => handleServiceSelect("netflix")}
-                variant="outline"
-                className={`flex flex-col items-center justify-center p-6 h-auto transition-all ${
-                  selectedService === "netflix" ? `ring-2 ring-[#E50914] ${getServiceBgColor("netflix")}` : ""
-                }`}
-              >
-                <Logo service="netflix" size="lg" />
-                <span className={`mt-2 font-medium ${getServiceColor("netflix")}`}>Netflix</span>
-              </Button>
-              
-              <Button 
-                onClick={() => handleServiceSelect("prime")}
-                variant="outline"
-                className={`flex flex-col items-center justify-center p-6 h-auto transition-all ${
-                  selectedService === "prime" ? `ring-2 ring-[#00A8E1] ${getServiceBgColor("prime")}` : ""
-                }`}
-              >
-                <Logo service="prime" size="lg" />
-                <span className={`mt-2 font-medium ${getServiceColor("prime")}`}>Prime</span>
-              </Button>
-            </div>
-            
-            <div className="text-center">
-              <Button 
-                onClick={navigateToLoginTab} 
-                className="mt-4"
-              >
-                Continue
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="login" className="mt-0">
-            {selectedService === "crunchyroll" && <CrunchyrollLogin />}
-            {selectedService === "netflix" && <NetflixLogin />}
-            {selectedService === "prime" && <PrimeLogin />}
-            
-            <div className="text-center mt-4">
-              <Button 
-                variant="ghost" 
-                onClick={navigateToSelectTab}
-              >
-                Change Dashboard
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-md">
+        {selectedService ? (
+          <Button 
+            variant="ghost" 
+            onClick={() => setSelectedService(null)}
+            className="mb-6"
+          >
+            ← Back to selection
+          </Button>
+        ) : null}
+        
+        <Card className="w-full">
+          {!selectedService ? (
+            // Service Selection
+            <>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Select Dashboard</CardTitle>
+                <CardDescription>Choose which dashboard you want to access</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4">
+                  {(["crunchyroll", "netflix", "prime"] as ServiceType[]).map((service) => (
+                    <Button
+                      key={service}
+                      onClick={() => handleServiceSelect(service)}
+                      className="w-full p-4 h-16 justify-start gap-3"
+                      style={{
+                        backgroundColor: getServiceColor(service),
+                        color: 'white'
+                      }}
+                    >
+                      <Logo service={service} size="sm" />
+                      <span className="text-lg font-medium capitalize">{getServiceName(service)}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </>
+          ) : (
+            // Authentication Form
+            <>
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-2">
+                  <Logo service={selectedService} size="lg" />
+                </div>
+                <CardTitle className="text-2xl" style={{ color: getServiceColor(selectedService) }}>
+                  {getServiceName(selectedService)} Dashboard
+                </CardTitle>
+                <CardDescription>
+                  {activeTab === "login" ? "Sign in to your account" : "Create a new account"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="login">Login</TabsTrigger>
+                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="login">
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="mt-1"
+                          placeholder="Enter your username"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="mt-1 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        style={{
+                          backgroundColor: getServiceColor(selectedService),
+                          color: 'white'
+                        }}
+                      >
+                        <LogIn className="mr-2 h-4 w-4" /> Sign In
+                      </Button>
+                    </form>
+                  </TabsContent>
+                  
+                  <TabsContent value="signup">
+                    <form onSubmit={handleSignup} className="space-y-4">
+                      <div>
+                        <Label htmlFor="signup-username">Username</Label>
+                        <Input
+                          id="signup-username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="mt-1"
+                          placeholder="Choose a username"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="signup-password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="signup-password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Choose a password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="mt-1 pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="token">Invitation Token</Label>
+                        <Input
+                          id="token"
+                          value={token}
+                          onChange={(e) => setToken(e.target.value)}
+                          className="mt-1"
+                          placeholder="Enter your invitation token"
+                          required
+                        />
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        style={{
+                          backgroundColor: getServiceColor(selectedService),
+                          color: 'white'
+                        }}
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+              <CardFooter className="flex justify-center text-sm text-muted-foreground">
+                <p>
+                  {activeTab === "login" 
+                    ? "Don't have an account? " 
+                    : "Already have an account? "}
+                  <button 
+                    className="underline"
+                    onClick={() => setActiveTab(activeTab === "login" ? "signup" : "login")}
+                  >
+                    {activeTab === "login" ? "Sign up" : "Log in"}
+                  </button>
+                </p>
+              </CardFooter>
+            </>
+          )}
+        </Card>
       </div>
     </div>
   );

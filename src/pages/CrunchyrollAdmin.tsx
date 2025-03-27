@@ -14,43 +14,26 @@ import { Loader2 } from "lucide-react";
 import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function CrunchyrollAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchData("/");
-      setDbData(data);
-      toast.success("Crunchyroll database loaded successfully");
-    } catch (error) {
-      console.error("Error loading Crunchyroll database:", error);
-      toast.error("Failed to load Crunchyroll database");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
-
-    // Set up real-time subscriptions
-    const channel = supabase.channel('crunchyroll-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public'
-      }, () => {
-        // Reload data when any changes are detected
-        loadData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchData("/");
+        setDbData(data);
+        toast.success("Crunchyroll database loaded successfully");
+      } catch (error) {
+        console.error("Error loading Crunchyroll database:", error);
+        toast.error("Failed to load Crunchyroll database");
+      } finally {
+        setLoading(false);
+      }
     };
+    loadData();
   }, []);
 
   if (loading) {

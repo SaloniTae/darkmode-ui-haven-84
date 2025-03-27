@@ -13,43 +13,26 @@ import { Loader2 } from "lucide-react";
 import { fetchNetflixData } from "@/lib/firebase-netflix";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function NetflixAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchNetflixData("/");
-      setDbData(data);
-      toast.success("Netflix database loaded successfully");
-    } catch (error) {
-      console.error("Error loading Netflix database:", error);
-      toast.error("Failed to load Netflix database");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
-
-    // Set up real-time subscriptions
-    const channel = supabase.channel('netflix-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public'
-      }, () => {
-        // Reload data when any changes are detected
-        loadData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchNetflixData("/");
+        setDbData(data);
+        toast.success("Netflix database loaded successfully");
+      } catch (error) {
+        console.error("Error loading Netflix database:", error);
+        toast.error("Failed to load Netflix database");
+      } finally {
+        setLoading(false);
+      }
     };
+    loadData();
   }, []);
 
   if (loading) {

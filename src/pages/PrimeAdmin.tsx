@@ -13,43 +13,26 @@ import { Loader2 } from "lucide-react";
 import { fetchPrimeData } from "@/lib/firebase-prime";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function PrimeAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchPrimeData("/");
-      setDbData(data);
-      toast.success("Prime database loaded successfully");
-    } catch (error) {
-      console.error("Error loading Prime database:", error);
-      toast.error("Failed to load Prime database");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
-
-    // Set up real-time subscriptions
-    const channel = supabase.channel('prime-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public'
-      }, () => {
-        // Reload data when any changes are detected
-        loadData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchPrimeData("/");
+        setDbData(data);
+        toast.success("Prime database loaded successfully");
+      } catch (error) {
+        console.error("Error loading Prime database:", error);
+        toast.error("Failed to load Prime database");
+      } finally {
+        setLoading(false);
+      }
     };
+    loadData();
   }, []);
 
   if (loading) {
