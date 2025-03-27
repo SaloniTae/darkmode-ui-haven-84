@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, memo, useEffect } from "react";
+
+import React, { Suspense, lazy, memo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,11 +7,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Lazy load pages to improve initial loading performance
 const CrunchyrollAdmin = lazy(() => import("./pages/CrunchyrollAdmin"));
 const NetflixAdmin = lazy(() => import("./pages/NetflixAdmin"));
 const PrimeAdmin = lazy(() => import("./pages/PrimeAdmin"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Index = lazy(() => import("./pages/Index"));
 
 // Create a new QueryClient with optimized settings
@@ -25,60 +29,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Security wrapper to prevent inspection and network sniffing
-function SecureWrapper({ children }: { children: React.ReactNode }) {
-  // Disable right click
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      return false;
-    };
-
-    // Disable console access
-    const disableConsole = () => {
-      const originalConsole = { ...console };
-      window.console = {
-        ...originalConsole,
-        log: () => {},
-        warn: () => {},
-        error: () => {},
-        info: () => {},
-        debug: () => {},
-      };
-    };
-
-    // Disable F12 key and other debugging keys
-    const disableDevTools = (e: KeyboardEvent) => {
-      // F12 key
-      if (e.keyCode === 123) {
-        e.preventDefault();
-        return false;
-      }
-
-      // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
-      if (
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
-        // Ctrl+Shift+J
-        (e.ctrlKey && e.keyCode === 85)
-      ) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    document.addEventListener("contextmenu", handleContextMenu);
-    document.addEventListener("keydown", disableDevTools);
-    window.addEventListener("load", disableConsole);
-
-    return () => {
-      document.removeEventListener("contextmenu", handleContextMenu);
-      document.removeEventListener("keydown", disableDevTools);
-    };
-  }, []);
-
-  return <>{children}</>;
-}
-
 // Memoize the App component to reduce unnecessary re-renders
 const App = memo(() => (
   <ThemeProvider defaultTheme="dark">
@@ -86,31 +36,45 @@ const App = memo(() => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <SecureWrapper>
-          <BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
               </div>
             }>
               <Routes>
-                {/* Redirect root to crunchyroll by default */}
-                <Route path="/" element={<Navigate to="/crunchyroll" replace />} />
+                {/* Public route for login */}
+                <Route path="/login" element={<LoginPage />} />
                 
-                {/* Admin routes for different streaming services */}
-                <Route path="/crunchyroll" element={<CrunchyrollAdmin />} />
-                <Route path="/netflix" element={<NetflixAdmin />} />
-                <Route path="/prime" element={<PrimeAdmin />} />
+                {/* Protected routes for different streaming services */}
+                <Route path="/crunchyroll" element={
+                  <ProtectedRoute requiredService="crunchyroll">
+                    <CrunchyrollAdmin />
+                  </ProtectedRoute>
+                } />
                 
-                {/* Keep Index page for reference */}
-                <Route path="/index" element={<Index />} />
+                <Route path="/netflix" element={
+                  <ProtectedRoute requiredService="netflix">
+                    <NetflixAdmin />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/prime" element={
+                  <ProtectedRoute requiredService="prime">
+                    <PrimeAdmin />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Redirect root to login page */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
                 
                 {/* Fallback for unknown routes */}
-                <Route path="*" element={<Navigate to="/crunchyroll" replace />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </Suspense>
-          </BrowserRouter>
-        </SecureWrapper>
+          </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
