@@ -1,6 +1,5 @@
 
 import { useState, useEffect, memo, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
@@ -21,7 +20,6 @@ import { Label } from "@/components/ui/label";
 
 export const Header = memo(function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const location = useLocation();
   const { logout, isAuthenticated, user, currentService, isAdmin, updateUsername, updatePassword } = useAuth();
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -47,15 +45,10 @@ export const Header = memo(function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
-  // Determine which service logo to show based on the current route
+  // Determine which service logo to show based on the current service
   const getCurrentService = () => {
-    if (location.pathname.includes('/netflix')) return 'netflix';
-    if (location.pathname.includes('/prime')) return 'prime';
-    return 'crunchyroll';
+    if (!currentService) return 'crunchyroll';
+    return currentService;
   };
 
   const handleUpdateUsername = async () => {
@@ -133,56 +126,6 @@ export const Header = memo(function Header() {
         </div>
 
         <div className="flex items-center space-x-1 md:space-x-4">
-          {isAuthenticated && (
-            <nav className="mr-2">
-              <ul className="flex items-center space-x-1 md:space-x-2">
-                <li>
-                  <Link
-                    to="/crunchyroll"
-                    className={cn(
-                      "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                      isActive("/crunchyroll")
-                        ? "bg-primary/20 text-primary"
-                        : "hover:bg-primary/10 text-primary/80"
-                    )}
-                  >
-                    Crunchyroll
-                  </Link>
-                </li>
-                {isAdmin && (
-                  <>
-                    <li>
-                      <Link
-                        to="/netflix"
-                        className={cn(
-                          "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                          isActive("/netflix")
-                            ? "bg-primary/20 text-primary"
-                            : "hover:bg-primary/10 text-primary/80"
-                        )}
-                      >
-                        Netflix
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/prime"
-                        className={cn(
-                          "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                          isActive("/prime")
-                            ? "bg-primary/20 text-primary"
-                            : "hover:bg-primary/10 text-primary/80"
-                        )}
-                      >
-                        Prime
-                      </Link>
-                    </li>
-                  </>
-                )}
-              </ul>
-            </nav>
-          )}
-          
           <div className="flex items-center gap-2">
             {isAuthenticated && (
               <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -237,7 +180,7 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex justify-end space-x-4">
             <Button variant="outline" onClick={() => setShowUserDialog(false)}>
               Cancel
             </Button>
@@ -266,7 +209,7 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex justify-end space-x-4">
             <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
               Cancel
             </Button>

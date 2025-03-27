@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 export const CrunchyrollLogin = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin1234");
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
 
