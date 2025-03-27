@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy, memo, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,7 +8,9 @@ import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Lazy load pages to improve initial loading performance
-const Admin = lazy(() => import("./pages/Admin"));
+const CrunchyrollAdmin = lazy(() => import("./pages/CrunchyrollAdmin"));
+const NetflixAdmin = lazy(() => import("./pages/NetflixAdmin"));
+const PrimeAdmin = lazy(() => import("./pages/PrimeAdmin"));
 const Index = lazy(() => import("./pages/Index"));
 
 // Create a new QueryClient with optimized settings
@@ -93,20 +94,19 @@ const App = memo(() => (
               </div>
             }>
               <Routes>
-                {/* Redirect root to admin by default */}
-                <Route path="/" element={<Navigate to="/admin" replace />} />
+                {/* Redirect root to crunchyroll by default */}
+                <Route path="/" element={<Navigate to="/crunchyroll" replace />} />
                 
                 {/* Admin routes for different streaming services */}
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/crunchyroll" element={<Admin />} />
-                <Route path="/netflix" element={<Admin />} />
-                <Route path="/prime" element={<Admin />} />
+                <Route path="/crunchyroll" element={<CrunchyrollAdmin />} />
+                <Route path="/netflix" element={<NetflixAdmin />} />
+                <Route path="/prime" element={<PrimeAdmin />} />
                 
                 {/* Keep Index page for reference */}
                 <Route path="/index" element={<Index />} />
                 
                 {/* Fallback for unknown routes */}
-                <Route path="*" element={<Navigate to="/admin" replace />} />
+                <Route path="*" element={<Navigate to="/crunchyroll" replace />} />
               </Routes>
             </Suspense>
           </BrowserRouter>

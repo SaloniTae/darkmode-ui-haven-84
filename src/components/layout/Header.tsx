@@ -41,19 +41,6 @@ export const Header = memo(function Header() {
             <ul className="flex items-center space-x-1 md:space-x-2">
               <li>
                 <Link
-                  to="/admin"
-                  className={cn(
-                    "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
-                    isActive("/admin")
-                      ? "bg-primary/20 text-primary"
-                      : "hover:bg-primary/10 text-primary/80"
-                  )}
-                >
-                  Admin
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/crunchyroll"
                   className={cn(
                     "px-2 py-1 md:px-3 md:py-2 rounded-md text-sm transition-colors",
