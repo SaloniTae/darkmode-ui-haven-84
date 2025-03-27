@@ -56,6 +56,21 @@ export default function LoginPage() {
   const handleServiceSelect = (service: "crunchyroll" | "netflix" | "prime") => {
     setSelectedService(service);
   };
+  
+  // Navigate between tabs
+  const navigateToLoginTab = () => {
+    const loginTabTrigger = document.querySelector('button[value="login"]') as HTMLButtonElement;
+    if (loginTabTrigger) {
+      loginTabTrigger.click();
+    }
+  };
+  
+  const navigateToSelectTab = () => {
+    const selectTabTrigger = document.querySelector('button[value="select"]') as HTMLButtonElement;
+    if (selectTabTrigger) {
+      selectTabTrigger.click();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden relative animate-fade-in">
@@ -115,7 +130,7 @@ export default function LoginPage() {
             
             <div className="text-center">
               <Button 
-                onClick={() => document.querySelector('button[value="login"]')?.click()} 
+                onClick={navigateToLoginTab} 
                 className="mt-4"
               >
                 Continue
@@ -131,7 +146,7 @@ export default function LoginPage() {
             <div className="text-center mt-4">
               <Button 
                 variant="ghost" 
-                onClick={() => document.querySelector('button[value="select"]')?.click()}
+                onClick={navigateToSelectTab}
               >
                 Change Dashboard
               </Button>
