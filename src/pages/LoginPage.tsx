@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
 
 type ServiceType = "crunchyroll" | "netflix" | "prime";
-
-// Admin credentials for initial setup
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin1234";
 
 export default function LoginPage() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
@@ -23,27 +19,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [token, setToken] = useState("");
-  const { login, signup } = useAuth();
+  const { login, signup, isAuthenticated, currentService } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && currentService) {
+      navigate(`/${currentService}`);
+    }
+  }, [isAuthenticated, currentService, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // For Crunchyroll admin, use hardcoded credentials for now
-    if (selectedService === "crunchyroll") {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        await login(username, password, selectedService);
-      } else {
-        await login(username, password, selectedService);
-      }
-    } else {
+    if (selectedService) {
       await login(username, password, selectedService);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
-    await signup(username, password, token, selectedService!);
+    if (!token || !selectedService) return;
+    await signup(username, password, token, selectedService);
   };
 
   const handleServiceSelect = (service: ServiceType) => {
@@ -159,6 +155,7 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="mt-1 pr-10"
+                            required
                           />
                           <button
                             type="button"

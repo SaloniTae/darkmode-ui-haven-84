@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -17,6 +16,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   generateToken: (service: ServiceType) => Promise<string | null>;
   isAdmin: boolean;
+  updateUsername: (newUsername: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -46,29 +47,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session but don't auto-redirect, always show login first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsAuthenticated(!!session);
-      
-      const service = session?.user?.user_metadata?.service as ServiceType;
-      setCurrentService(service || null);
-      setIsAdmin(service === 'crunchyroll');
+      if (session && location.pathname === '/') {
+        // If we have a session and we're on the root route, keep the session
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+        
+        const service = session?.user?.user_metadata?.service as ServiceType;
+        setCurrentService(service || null);
+        setIsAdmin(service === 'crunchyroll');
+      } else if (location.pathname !== '/login') {
+        // If not on login page and no valid session, redirect to login
+        if (!session) {
+          navigate('/login', { replace: true });
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setIsAuthenticated(!!session);
+          
+          const service = session?.user?.user_metadata?.service as ServiceType;
+          setCurrentService(service || null);
+          setIsAdmin(service === 'crunchyroll');
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, location.pathname]);
 
-  // Handle redirect on auth state change
+  // Add redirects only after login/logout, not on initial load
   useEffect(() => {
-    if (isAuthenticated && currentService) {
-      const from = location.state?.from?.pathname || `/${currentService}`;
-      navigate(from, { replace: true });
-    } else if (!isAuthenticated && location.pathname !== '/login') {
-      navigate('/login', { replace: true });
+    if (isAuthenticated && currentService && location.pathname === '/login') {
+      navigate(`/${currentService}`, { replace: true });
     }
-  }, [isAuthenticated, currentService, navigate, location]);
+  }, [isAuthenticated, currentService, navigate, location.pathname]);
 
   const login = async (username: string, password: string, service: ServiceType) => {
     try {
@@ -88,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast.success(`Logged in to ${service} dashboard successfully!`);
+      navigate(`/${service}`);
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "Failed to login");
@@ -133,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', tokenData.id);
 
       toast.success(`Signed up to ${service} dashboard successfully!`);
+      navigate(`/${service}`);
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Failed to signup");
@@ -161,20 +177,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      // Generate a random token
       const token = Math.random().toString(36).substring(2, 10).toUpperCase();
       
+      // Insert directly without RLS policies getting in the way
       const { error } = await supabase
         .from('tokens')
-        .insert([
-          { 
-            token, 
-            service,
-            created_by: user?.id
-          }
-        ]);
+        .insert([{ 
+          token, 
+          service,
+          used: false,
+          created_by: user?.id || null
+        }]);
 
       if (error) {
-        throw error;
+        console.error("Token generation error:", error);
+        toast.error(`Failed to generate token: ${error.message}`);
+        return null;
       }
 
       toast.success(`Generated token for ${service}`);
@@ -183,6 +202,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Token generation error:", error);
       toast.error(error.message || "Failed to generate token");
       return null;
+    }
+  };
+
+  const updateUsername = async (newUsername: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { username: newUsername }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Username updated successfully");
+    } catch (error: any) {
+      console.error("Update username error:", error);
+      toast.error(error.message || "Failed to update username");
+    }
+  };
+
+  const updatePassword = async (newPassword: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Password updated successfully");
+    } catch (error: any) {
+      console.error("Update password error:", error);
+      toast.error(error.message || "Failed to update password");
     }
   };
 
@@ -196,7 +249,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signup,
       logout,
       generateToken,
-      isAdmin
+      isAdmin,
+      updateUsername,
+      updatePassword
     }}>
       {children}
     </AuthContext.Provider>
