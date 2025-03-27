@@ -21,7 +21,7 @@ export const Logo = memo(function Logo({ className, size = 'md' }: LogoProps) {
         alt="crunchyroll logo" 
         className={cn(
           sizeClasses[size], 
-          "filter dark:invert-0 dark:brightness-100 invert brightness-0 transition-all duration-300"
+          "dark:filter-none filter invert dark:brightness-100 brightness-0 transition-all duration-300"
         )} 
       />
     </div>
