@@ -16,6 +16,8 @@ interface AuthContextType {
   signup: (username: string, password: string, token: string, service: ServiceType) => Promise<void>;
   logout: () => Promise<void>;
   generateToken: (service: ServiceType) => Promise<string | null>;
+  updateUsername: (newUsername: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -62,10 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Handle redirect on auth state change
   useEffect(() => {
-    if (isAuthenticated && currentService) {
+    if (isAuthenticated && currentService && location.pathname === '/login') {
       const from = location.state?.from?.pathname || `/${currentService}`;
       navigate(from, { replace: true });
-    } else if (!isAuthenticated && location.pathname !== '/login') {
+    } else if (!isAuthenticated && location.pathname !== '/login' && !location.pathname.startsWith('/signup')) {
       navigate('/login', { replace: true });
     }
   }, [isAuthenticated, currentService, navigate, location]);
@@ -186,6 +188,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUsername = async (newUsername: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { username: newUsername }
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      console.error("Username update error:", error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      // First verify current password by trying to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: currentPassword
+      });
+
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      console.error("Password update error:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -196,6 +239,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signup,
       logout,
       generateToken,
+      updateUsername,
+      updatePassword,
       isAdmin
     }}>
       {children}
