@@ -1,4 +1,5 @@
-import { Suspense, lazy, memo } from "react";
+
+import React, { Suspense, lazy, memo, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,7 +27,7 @@ const queryClient = new QueryClient({
 // Security wrapper to prevent inspection and network sniffing
 function SecureWrapper({ children }: { children: React.ReactNode }) {
   // Disable right click
-  React.useEffect(() => {
+  useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       return false;
