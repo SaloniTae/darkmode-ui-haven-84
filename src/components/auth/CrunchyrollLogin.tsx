@@ -14,7 +14,7 @@ export const CrunchyrollLogin = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login("crunchyroll");
+    login(username, password, "crunchyroll");
   };
 
   return (

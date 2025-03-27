@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 export const PrimeLogin = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login("prime");
+    login(username, password, "prime");
   };
 
   return (
@@ -25,10 +25,9 @@ export const PrimeLogin = () => {
       <form onSubmit={handleSubmit} className="w-full space-y-4">
         <div>
           <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="bg-white/5 border-[#00A8E1]/30 focus-visible:ring-[#00A8E1]"
             required
           />

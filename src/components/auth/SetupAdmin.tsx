@@ -47,7 +47,7 @@ export const SetupAdmin = () => {
           } else {
             console.log("Admin account created successfully");
           }
-        } else if (users && users.length === 0) {
+        } else if (users && users.users && users.users.length === 0) {
           // No users exist, create admin
           const { error: signupError } = await supabase.auth.signUp({
             email: `${ADMIN_USERNAME}@example.com`,

@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 export const NetflixLogin = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login("netflix");
+    login(username, password, "netflix");
   };
 
   return (
@@ -25,10 +25,9 @@ export const NetflixLogin = () => {
       <form onSubmit={handleSubmit} className="w-full space-y-4">
         <div>
           <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="bg-white/5 border-[#E50914]/30 focus-visible:ring-[#E50914]"
             required
           />
