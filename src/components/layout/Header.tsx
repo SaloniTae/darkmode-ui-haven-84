@@ -21,6 +21,13 @@ export const Header = memo(function Header() {
     return location.pathname === path;
   };
 
+  // Determine which service logo to show based on the current route
+  const getCurrentService = () => {
+    if (location.pathname.includes('/netflix')) return 'netflix';
+    if (location.pathname.includes('/prime')) return 'prime';
+    return 'crunchyroll';
+  };
+
   return (
     <header
       className={cn(
@@ -30,7 +37,7 @@ export const Header = memo(function Header() {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="font-medium text-lg flex items-center gap-2">
-          <Logo size="md" />
+          <Logo size="md" service={getCurrentService()} />
           <span className="text-gradient font-bold hidden md:inline-block">
             Admin Dashboard
           </span>

@@ -1,14 +1,19 @@
 
-import { memo, useEffect, useState } from "react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  service?: 'crunchyroll' | 'netflix' | 'prime';
 }
 
-export const Logo = memo(function Logo({ className, size = 'md' }: LogoProps) {
+export const Logo = memo(function Logo({ 
+  className, 
+  size = 'md',
+  service = 'crunchyroll'
+}: LogoProps) {
   const { theme } = useTheme();
   const sizeClasses = {
     sm: "w-6 h-6",
@@ -16,23 +21,32 @@ export const Logo = memo(function Logo({ className, size = 'md' }: LogoProps) {
     lg: "w-12 h-12"
   };
 
+  // Get the appropriate logo based on service and theme
+  const getLogo = () => {
+    switch (service) {
+      case 'netflix':
+        return theme === "light" 
+          ? "https://img.icons8.com/?size=512&id=YiCrW5hUkQCr&format=png" 
+          : "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Netflix-white.png";
+      case 'prime':
+        return theme === "light" 
+          ? "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Prime-black.png" 
+          : "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Prime-white.png";
+      case 'crunchyroll':
+      default:
+        return theme === "light" 
+          ? "https://static-00.iconduck.com/assets.00/crunchyroll-icon-512x512-4xi4az2l.png" 
+          : "https://img.icons8.com/ios-glyphs/120/FFFFFF/crunchyroll.png";
+    }
+  };
+
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
-      {theme === "light" ? (
-        // Light mode logo
-        <img 
-          src="https://static-00.iconduck.com/assets.00/crunchyroll-icon-512x512-4xi4az2l.png" 
-          alt="crunchyroll logo" 
-          className={cn(sizeClasses[size], "transition-all duration-300")} 
-        />
-      ) : (
-        // Dark mode logo
-        <img 
-          src="https://img.icons8.com/ios-glyphs/120/FFFFFF/crunchyroll.png" 
-          alt="crunchyroll logo" 
-          className={cn(sizeClasses[size], "transition-all duration-300")} 
-        />
-      )}
+      <img 
+        src={getLogo()} 
+        alt={`${service} logo`} 
+        className={cn(sizeClasses[size], "transition-all duration-300")} 
+      />
     </div>
   );
 });
