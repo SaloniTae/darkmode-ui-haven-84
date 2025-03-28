@@ -45,7 +45,6 @@ export const PersistLogin = () => {
       }
     };
 
-    // Always verify session on initial load, regardless of current auth state
     verifySession();
 
     return () => {
