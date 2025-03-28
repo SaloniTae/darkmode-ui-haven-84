@@ -56,7 +56,7 @@ export default function LoginPage() {
       const processedEmail = resetEmail.includes('@') ? resetEmail : `${resetEmail}@gmail.com`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(processedEmail, {
-        redirectTo: window.location.origin + '/login?tab=reset',
+        redirectTo: `${window.location.origin}/password-reset`,
       });
       
       if (error) {

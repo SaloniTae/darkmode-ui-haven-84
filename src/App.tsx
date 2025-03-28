@@ -16,6 +16,7 @@ const CrunchyrollAdmin = lazy(() => import("./pages/CrunchyrollAdmin"));
 const NetflixAdmin = lazy(() => import("./pages/NetflixAdmin"));
 const PrimeAdmin = lazy(() => import("./pages/PrimeAdmin"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const PasswordResetPage = lazy(() => import("./pages/PasswordResetPage"));
 
 // Create a new QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -43,8 +44,9 @@ const App = memo(() => (
             </div>
           }>
             <Routes>
-              {/* Public route for login */}
+              {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/password-reset" element={<PasswordResetPage />} />
               
               {/* Protected routes wrapped with PersistLogin */}
               <Route element={<PersistLogin />}>

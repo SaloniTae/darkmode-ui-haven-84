@@ -29,7 +29,7 @@ export const useAuthSession = () => {
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
           
-          if (location.pathname === '/login') {
+          if (location.pathname === '/login' || location.pathname === '/password-reset') {
             navigate(`/${service}`, { replace: true });
           }
         } else if (event === 'SIGNED_OUT') {
@@ -39,9 +39,11 @@ export const useAuthSession = () => {
           setCurrentService(null);
           setIsAdmin(false);
           
-          if (location.pathname !== '/login') {
+          if (location.pathname !== '/login' && location.pathname !== '/password-reset') {
             navigate('/login', { replace: true });
           }
+        } else if (event === 'PASSWORD_RECOVERY') {
+          navigate('/password-reset', { replace: true });
         }
       }
     );
