@@ -26,6 +26,7 @@ export const Header = memo(function Header() {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   
   // Reference to track if component is mounted
   const isMounted = useRef(true);
@@ -36,6 +37,17 @@ export const Header = memo(function Header() {
       isMounted.current = false;
     };
   }, []);
+
+  // Update displayName when user changes
+  useEffect(() => {
+    if (user) {
+      // Get email for display name
+      const username = user.email || user.user_metadata?.username || "";
+      // Remove @gmail.com if it exists
+      const displayUsername = username.includes('@') ? username.split('@')[0] : username;
+      setDisplayName(displayUsername);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -136,7 +148,7 @@ export const Header = memo(function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>
-                    {user?.user_metadata?.username || 'User'} 
+                    {displayName} 
                     <span className="block text-xs text-muted-foreground capitalize">
                       {currentService} account
                     </span>
