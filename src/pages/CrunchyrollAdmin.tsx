@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,27 +13,31 @@ import { Loader2 } from "lucide-react";
 import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CrunchyrollAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchData("/");
-        setDbData(data);
-        toast.success("Crunchyroll database loaded successfully");
-      } catch (error) {
-        console.error("Error loading Crunchyroll database:", error);
-        toast.error("Failed to load Crunchyroll database");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+    if (isAuthenticated) {
+      const loadData = async () => {
+        try {
+          setLoading(true);
+          const data = await fetchData("/");
+          setDbData(data);
+          toast.success("Crunchyroll database loaded successfully");
+        } catch (error) {
+          console.error("Error loading Crunchyroll database:", error);
+          toast.error("Failed to load Crunchyroll database");
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadData();
+    }
+  }, [isAuthenticated]);
 
   if (loading) {
     return <MainLayout className="flex items-center justify-center min-h-screen">
