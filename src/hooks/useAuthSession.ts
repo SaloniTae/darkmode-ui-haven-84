@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +42,7 @@ export const useAuthSession = () => {
             navigate('/login', { replace: true });
           }
         } else if (event === 'PASSWORD_RECOVERY') {
+          // Explicitly navigate to the password reset page
           navigate('/password-reset', { replace: true });
         }
       }
