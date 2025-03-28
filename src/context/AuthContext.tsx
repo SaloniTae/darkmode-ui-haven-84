@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -38,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const location = useLocation();
   
-  // This effect handles auth state changes from Supabase
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -53,7 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
           
-          // Only navigate if we're on login page to prevent loops
           if (location.pathname === '/login') {
             navigate(`/${service}`, { replace: true });
           }
@@ -64,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentService(null);
           setIsAdmin(false);
           
-          // Only navigate if we're not already on login page to prevent loops
           if (location.pathname !== '/login') {
             navigate('/login', { replace: true });
           }
@@ -72,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Initial session check
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
@@ -95,14 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           console.log("Session found for:", data.session.user?.email, "service:", service);
           
-          // Only navigate if we're on login page and have valid session to prevent loops
           if (location.pathname === '/login' && service) {
             navigate(`/${service}`, { replace: true });
           }
         } else {
           console.log("No existing session found");
           
-          // Only navigate if we're not on login page and have no session to prevent loops
           if (location.pathname !== '/login' && !location.pathname.includes('/login')) {
             navigate('/login', { replace: true });
           }
@@ -237,7 +230,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUsername = async (newUsername: string): Promise<void> => {
     try {
+      const email = newUsername.includes('@') ? newUsername : `${newUsername}@example.com`;
+      
       const { error } = await supabase.auth.updateUser({
+        email: email,
         data: { username: newUsername }
       });
 
