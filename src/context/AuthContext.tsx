@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -30,54 +31,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state
+  // Initialize auth state with improved session persistence
   useEffect(() => {
-    // Set up auth state listener
+    // First set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(!!session);
+      (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.email);
         
-        // Get service from metadata
-        const service = session?.user?.user_metadata?.service as ServiceType;
-        setCurrentService(service || null);
-        setIsAdmin(service === 'crunchyroll');
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          setIsAuthenticated(true);
+          
+          // Get service from metadata
+          const service = currentSession.user?.user_metadata?.service as ServiceType;
+          setCurrentService(service || null);
+          setIsAdmin(service === 'crunchyroll');
+        } else {
+          setSession(null);
+          setUser(null);
+          setIsAuthenticated(false);
+          setCurrentService(null);
+          setIsAdmin(false);
+        }
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // If we have a session, maintain it
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(!!session);
+    // Then check for existing session
+    const initializeAuth = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase.auth.getSession();
         
-        const service = session?.user?.user_metadata?.service as ServiceType;
-        setCurrentService(service || null);
-        setIsAdmin(service === 'crunchyroll');
-        
-        // If on login page with valid session, redirect to dashboard
-        if (location.pathname === '/login') {
-          navigate(`/${service || 'crunchyroll'}`, { replace: true });
+        if (error) {
+          console.error("Error getting session:", error);
+          throw error;
         }
-      } else if (location.pathname !== '/login') {
-        // Only redirect to login if no session and not already on login page
-        navigate('/login', { replace: true });
+        
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          setIsAuthenticated(true);
+          
+          const service = data.session.user?.user_metadata?.service as ServiceType;
+          setCurrentService(service || null);
+          setIsAdmin(service === 'crunchyroll');
+          
+          console.log("Session restored for:", data.session.user?.email, "service:", service);
+        } else {
+          console.log("No existing session found");
+          if (location.pathname !== '/login') {
+            navigate('/login', { replace: true });
+          }
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        setIsLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate, location.pathname]);
 
   // Add redirects only after login/logout, not on initial load
   useEffect(() => {
-    if (isAuthenticated && currentService && location.pathname === '/login') {
-      navigate(`/${currentService}`, { replace: true });
+    if (!isLoading) {
+      if (isAuthenticated && currentService && location.pathname === '/login') {
+        navigate(`/${currentService}`, { replace: true });
+      } else if (!isAuthenticated && location.pathname !== '/login') {
+        navigate('/login', { replace: true });
+      }
     }
-  }, [isAuthenticated, currentService, navigate, location.pathname]);
+  }, [isAuthenticated, currentService, navigate, location.pathname, isLoading]);
 
   const login = async (username: string, password: string, service: ServiceType) => {
     try {
@@ -248,7 +280,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUsername,
       updatePassword
     }}>
-      {children}
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

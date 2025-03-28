@@ -180,8 +180,8 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row justify-end sm:space-x-4 gap-2">
-            <Button variant="outline" onClick={() => setShowUserDialog(false)} className="w-full sm:w-auto">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 gap-4">
+            <Button variant="outline" onClick={() => setShowUserDialog(false)} className="w-full sm:w-auto mb-2 sm:mb-0">
               Cancel
             </Button>
             <Button onClick={handleUpdateUsername} className="w-full sm:w-auto">
@@ -209,8 +209,8 @@ export const Header = memo(function Header() {
               />
             </div>
           </div>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row justify-end sm:space-x-4 gap-2">
-            <Button variant="outline" onClick={() => setShowPasswordDialog(false)} className="w-full sm:w-auto">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 gap-4">
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)} className="w-full sm:w-auto mb-2 sm:mb-0">
               Cancel
             </Button>
             <Button onClick={handleUpdatePassword} className="w-full sm:w-auto">

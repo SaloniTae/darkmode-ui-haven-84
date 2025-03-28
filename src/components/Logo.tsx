@@ -1,5 +1,5 @@
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -15,20 +15,55 @@ export const Logo = memo(function Logo({
   service = 'crunchyroll'
 }: LogoProps) {
   const { theme } = useTheme();
+  const [effectiveTheme, setEffectiveTheme] = useState<'dark' | 'light'>('dark');
   const sizeClasses = {
     sm: "w-6 h-6",
     md: "w-8 h-8",
     lg: "w-12 h-12"
   };
 
-  // Get the appropriate logo based on service and theme
-  const getLogo = () => {
-    // Calculate effective theme (for system mode)
-    let effectiveTheme = theme;
-    if (theme === 'system') {
-      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Update effective theme when system preference or theme changes
+  useEffect(() => {
+    const updateEffectiveTheme = () => {
+      if (theme === 'system') {
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setEffectiveTheme(isDarkMode ? 'dark' : 'light');
+      } else {
+        setEffectiveTheme(theme as 'dark' | 'light');
+      }
+    };
+
+    updateEffectiveTheme();
+
+    // Listen for changes in system preference
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      if (theme === 'system') {
+        updateEffectiveTheme();
+      }
+    };
+
+    // Add event listener with newer API if available
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handler);
     }
-    
+
+    return () => {
+      // Clean up listener with newer API if available
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handler);
+      } else {
+        // Fallback for older browsers
+        mediaQuery.removeListener(handler);
+      }
+    };
+  }, [theme]);
+
+  // Get the appropriate logo based on service and effective theme
+  const getLogo = () => {
     switch (service) {
       case 'netflix':
         return effectiveTheme === "light" 
