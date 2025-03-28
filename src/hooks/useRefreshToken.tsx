@@ -11,10 +11,12 @@ const useRefreshToken = () => {
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
-        throw error;
+        console.error("Error getting session:", error);
+        return null;
       }
       
       if (data.session) {
+        // We have a valid session, set all the auth state values
         setSession(data.session);
         setUser(data.session.user);
         setIsAuthenticated(true);
@@ -23,10 +25,11 @@ const useRefreshToken = () => {
         setCurrentService(service || null);
         setIsAdmin(service === 'crunchyroll');
         
-        console.log("Session refreshed for:", data.session.user?.email);
+        console.log("Session refreshed successfully for:", data.session.user?.email);
         return data.session;
       }
       
+      console.log("No active session found during refresh");
       return null;
     } catch (error) {
       console.error("Error refreshing token:", error);

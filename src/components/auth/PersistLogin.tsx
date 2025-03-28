@@ -15,16 +15,27 @@ export const PersistLogin = () => {
 
     const verifySession = async () => {
       try {
-        await refresh();
+        // Attempt to refresh the session
+        const result = await refresh();
+        
+        if (result) {
+          console.log("Session verified successfully");
+        } else {
+          console.log("No active session found");
+        }
       } catch (err) {
         console.error("Failed to refresh session:", err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Only attempt to refresh if not already authenticated
-    !isAuthenticated ? verifySession() : setIsLoading(false);
+    // Always verify session on initial load, regardless of current auth state
+    // This ensures we don't lose session state after refresh
+    verifySession();
 
     return () => {
       isMounted = false;
