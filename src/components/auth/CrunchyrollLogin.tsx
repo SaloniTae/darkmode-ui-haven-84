@@ -1,21 +1,20 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Eye, EyeOff, LogIn, Mail, User } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 export const CrunchyrollLogin = () => {
-  const [loginId, setLoginId] = useState("admin");
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin1234");
   const [showPassword, setShowPassword] = useState(false);
-  const [useEmail, setUseEmail] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(loginId, password, "crunchyroll");
+    login(username, password, "crunchyroll");
   };
 
   return (
@@ -23,32 +22,12 @@ export const CrunchyrollLogin = () => {
       <Logo service="crunchyroll" size="lg" />
       <h1 className="text-2xl font-bold text-[#F47521]">Crunchyroll Admin</h1>
       
-      <div className="flex space-x-2 w-full mb-2">
-        <Button
-          type="button"
-          variant={useEmail ? "outline" : "default"}
-          onClick={() => setUseEmail(false)}
-          className="flex-1"
-        >
-          <User className="mr-2 h-4 w-4" /> Username
-        </Button>
-        <Button
-          type="button"
-          variant={useEmail ? "default" : "outline"}
-          onClick={() => setUseEmail(true)}
-          className="flex-1"
-        >
-          <Mail className="mr-2 h-4 w-4" /> Email
-        </Button>
-      </div>
-      
       <form onSubmit={handleSubmit} className="w-full space-y-4">
         <div>
           <Input
-            placeholder={useEmail ? "Email" : "Username"}
-            type={useEmail ? "email" : "text"}
-            value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="bg-white/5 border-[#F47521]/30 focus-visible:ring-[#F47521]"
             required
           />

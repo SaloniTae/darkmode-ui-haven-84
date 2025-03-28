@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,8 +11,8 @@ interface AuthContextType {
   currentService: ServiceType | null;
   user: User | null;
   session: Session | null;
-  login: (usernameOrEmail: string, password: string, service: ServiceType) => Promise<void>;
-  signup: (username: string, email: string, password: string, token: string, service: ServiceType) => Promise<void>;
+  login: (username: string, password: string, service: ServiceType) => Promise<void>;
+  signup: (username: string, password: string, token: string, service: ServiceType) => Promise<void>;
   logout: () => Promise<void>;
   generateToken: (service: ServiceType) => Promise<string | null>;
   isAdmin: boolean;
@@ -52,8 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const service = currentSession.user?.user_metadata?.service as ServiceType;
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
-        } else if (event === 'SIGNED_OUT') {
-          // Only clear auth state for explicit sign-out events
+        } else {
           setSession(null);
           setUser(null);
           setIsAuthenticated(false);
@@ -112,37 +110,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Redirecting to service dashboard:", currentService);
       navigate(`/${currentService}`, { replace: true });
     } 
-    else if (isAuthenticated === false && location.pathname !== '/login') {
+    else if (!isAuthenticated && location.pathname !== '/login') {
       console.log("Redirecting to login page from:", location.pathname);
       navigate('/login', { replace: true });
     }
   }, [isAuthenticated, currentService, navigate, location.pathname, isLoading]);
 
-  // Helper function to determine if input is email
-  const isEmail = (input: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(input);
-  };
-
-  const login = async (usernameOrEmail: string, password: string, service: ServiceType) => {
+  const login = async (username: string, password: string, service: ServiceType) => {
     try {
-      let authResponse;
-      
-      if (isEmail(usernameOrEmail)) {
-        // Login with email
-        authResponse = await supabase.auth.signInWithPassword({
-          email: usernameOrEmail,
-          password,
-        });
-      } else {
-        // Login with username (using email format with @example.com)
-        authResponse = await supabase.auth.signInWithPassword({
-          email: `${usernameOrEmail}@example.com`,
-          password,
-        });
-      }
-      
-      const { data, error } = authResponse;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@example.com`,
+        password,
+      });
 
       if (error) {
         throw error;
@@ -162,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (username: string, email: string, password: string, token: string, service: ServiceType) => {
+  const signup = async (username: string, password: string, token: string, service: ServiceType) => {
     try {
       const { data: tokenData, error: tokenError } = await supabase
         .from('tokens')
@@ -177,36 +156,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Determine if we're using email or username for auth
-      let signupData;
-      if (email && email.trim() !== '') {
-        // Sign up with email
-        signupData = {
-          email,
-          password,
-          options: {
-            data: {
-              username,
-              email,
-              service
-            }
+      const { data, error } = await supabase.auth.signUp({
+        email: `${username}@example.com`,
+        password,
+        options: {
+          data: {
+            username,
+            service
           }
-        };
-      } else {
-        // Sign up with username
-        signupData = {
-          email: `${username}@example.com`,
-          password,
-          options: {
-            data: {
-              username,
-              service
-            }
-          }
-        };
-      }
-
-      const { data, error } = await supabase.auth.signUp(signupData);
+        }
+      });
 
       if (error) {
         throw error;
@@ -218,12 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', tokenData.id);
 
       toast.success(`Signed up to ${service} dashboard successfully!`);
-      
-      if (email && email.trim() !== '') {
-        toast.info("Please check your email to confirm your account.");
-      } else {
-        navigate(`/${service}`);
-      }
+      navigate(`/${service}`);
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Failed to signup");
