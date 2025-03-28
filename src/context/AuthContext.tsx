@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
+  const initialAuthCheckDone = React.useRef(false);
 
   // Initialize auth state with improved session persistence
   useEffect(() => {
@@ -82,12 +83,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("Session restored for:", data.session.user?.email, "service:", service);
         } else {
           console.log("No existing session found");
-          if (location.pathname !== '/login') {
-            navigate('/login', { replace: true });
-          }
+          // Don't navigate here, let the route protection handle it
         }
+        
+        initialAuthCheckDone.current = true;
       } catch (error) {
         console.error("Auth initialization error:", error);
+        initialAuthCheckDone.current = true;
       } finally {
         setIsLoading(false);
       }
@@ -98,16 +100,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, location.pathname]);
+  }, []);
 
-  // Add redirects only after login/logout, not on initial load
+  // Handle redirects based on authentication state, but only after initial auth check
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated && currentService && location.pathname === '/login') {
-        navigate(`/${currentService}`, { replace: true });
-      } else if (!isAuthenticated && location.pathname !== '/login') {
-        navigate('/login', { replace: true });
-      }
+    if (isLoading || !initialAuthCheckDone.current) {
+      return; // Don't redirect until initial auth check is complete
+    }
+    
+    // If user is authenticated and on login page, redirect to their service
+    if (isAuthenticated && currentService && location.pathname === '/login') {
+      console.log("Redirecting to service dashboard:", currentService);
+      navigate(`/${currentService}`, { replace: true });
+    } 
+    // If user is not authenticated and not on login page, redirect to login
+    else if (!isAuthenticated && location.pathname !== '/login') {
+      console.log("Redirecting to login page from:", location.pathname);
+      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, currentService, navigate, location.pathname, isLoading]);
 

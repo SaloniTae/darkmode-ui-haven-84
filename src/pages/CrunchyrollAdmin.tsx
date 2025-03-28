@@ -17,12 +17,13 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 export default function CrunchyrollAdmin() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Only fetch data if authenticated and not already fetched
     if (isAuthenticated && !dataFetchedRef.current) {
       const loadData = async () => {
         try {
@@ -42,7 +43,13 @@ export default function CrunchyrollAdmin() {
     }
   }, [isAuthenticated]);
 
-  if (loading && isAuthenticated) {
+  // If not authenticated, don't show anything as the ProtectedRoute component
+  // will handle the redirect to login page
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  if (loading) {
     return <MainLayout className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
@@ -51,7 +58,7 @@ export default function CrunchyrollAdmin() {
       </MainLayout>;
   }
 
-  if (!dbData && isAuthenticated) {
+  if (!dbData) {
     return <MainLayout>
         <div className="glass-morphism p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Database Error</h2>
