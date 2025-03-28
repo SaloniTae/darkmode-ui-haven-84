@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -236,12 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update the user's email directly with auto confirmation
       const { error } = await supabase.auth.updateUser({
         email: email,
-        data: { username: newUsername },
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      }, {
-        emailRedirectTo: window.location.origin
+        data: { username: newUsername }
       });
 
       if (error) {
