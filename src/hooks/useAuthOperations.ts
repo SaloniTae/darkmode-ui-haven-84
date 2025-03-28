@@ -124,11 +124,11 @@ export const useAuthOperations = () => {
 
   const updateUsername = async (newUsername: string): Promise<void> => {
     try {
-      // Don't format the email - use the username directly
-      // This is to avoid the validation error with example.com emails
+      const email = newUsername.includes('@') ? newUsername : `${newUsername}@example.com`;
       
-      // Update only the user metadata including username without changing the email
+      // Update the user's email directly with auto confirmation
       const { error } = await supabase.auth.updateUser({
+        email: email,
         data: { username: newUsername }
       });
 
@@ -136,7 +136,7 @@ export const useAuthOperations = () => {
         throw error;
       }
 
-      toast.success("Username updated successfully.");
+      toast.success("Username updated successfully. You can now login with your new username.");
     } catch (error: any) {
       console.error("Update username error:", error);
       toast.error(error.message || "Failed to update username");
