@@ -47,10 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
+    // Check for existing session but don't auto-redirect, always show login first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // If we have a session, maintain it
+      if (session && location.pathname === '/') {
+        // If we have a session and we're on the root route, keep the session
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
@@ -58,14 +58,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const service = session?.user?.user_metadata?.service as ServiceType;
         setCurrentService(service || null);
         setIsAdmin(service === 'crunchyroll');
-        
-        // If on login page with valid session, redirect to dashboard
-        if (location.pathname === '/login') {
-          navigate(`/${service || 'crunchyroll'}`, { replace: true });
-        }
       } else if (location.pathname !== '/login') {
-        // Only redirect to login if no session and not already on login page
-        navigate('/login', { replace: true });
+        // If not on login page and no valid session, redirect to login
+        if (!session) {
+          navigate('/login', { replace: true });
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setIsAuthenticated(!!session);
+          
+          const service = session?.user?.user_metadata?.service as ServiceType;
+          setCurrentService(service || null);
+          setIsAdmin(service === 'crunchyroll');
+        }
       }
     });
 

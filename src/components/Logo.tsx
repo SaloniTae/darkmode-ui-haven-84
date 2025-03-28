@@ -23,24 +23,18 @@ export const Logo = memo(function Logo({
 
   // Get the appropriate logo based on service and theme
   const getLogo = () => {
-    // Calculate effective theme (for system mode)
-    let effectiveTheme = theme;
-    if (theme === 'system') {
-      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    
     switch (service) {
       case 'netflix':
-        return effectiveTheme === "light" 
+        return theme === "light" 
           ? "https://img.icons8.com/?size=512&id=YiCrW5hUkQCr&format=png" 
           : "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Netflix-white.png";
       case 'prime':
-        return effectiveTheme === "light" 
+        return theme === "light" 
           ? "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Prime-black.png" 
           : "https://raw.githubusercontent.com/OTTONRENT01/FOR-PHOTOS/refs/heads/main/Prime-white.png";
       case 'crunchyroll':
       default:
-        return effectiveTheme === "light" 
+        return theme === "light" 
           ? "https://static-00.iconduck.com/assets.00/crunchyroll-icon-512x512-4xi4az2l.png" 
           : "https://img.icons8.com/ios-glyphs/120/FFFFFF/crunchyroll.png";
     }
