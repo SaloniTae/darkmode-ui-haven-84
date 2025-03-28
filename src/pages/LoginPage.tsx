@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import { Eye, EyeOff, LogIn, UserPlus, Mail } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +15,8 @@ type ServiceType = "crunchyroll" | "netflix" | "prime";
 export default function LoginPage() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [useEmail, setUseEmail] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
@@ -32,22 +34,25 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedService) {
-      await login(username, password, selectedService);
+      const loginId = useEmail ? email : username;
+      await login(loginId, password, selectedService);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !selectedService) return;
-    await signup(username, password, token, selectedService);
+    await signup(username, email, password, token, selectedService);
   };
 
   const handleServiceSelect = (service: ServiceType) => {
     setSelectedService(service);
     setUsername("");
+    setEmail("");
     setPassword("");
     setToken("");
     setActiveTab("login");
+    setUseEmail(false);
   };
 
   // Get service color for styling
@@ -133,17 +138,51 @@ export default function LoginPage() {
                   
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
-                      <div>
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="mt-1"
-                          placeholder="Enter your username"
-                          required
-                        />
+                      <div className="flex items-center space-x-2 mb-4">
+                        <Button 
+                          type="button" 
+                          variant={useEmail ? "outline" : "default"}
+                          onClick={() => setUseEmail(false)}
+                          className="flex-1"
+                        >
+                          Username
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={useEmail ? "default" : "outline"}
+                          onClick={() => setUseEmail(true)}
+                          className="flex-1"
+                        >
+                          Email
+                        </Button>
                       </div>
+
+                      {useEmail ? (
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="mt-1"
+                            placeholder="Enter your email"
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="username">Username</Label>
+                          <Input
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="mt-1"
+                            placeholder="Enter your username"
+                            required
+                          />
+                        </div>
+                      )}
                       
                       <div>
                         <Label htmlFor="password">Password</Label>
@@ -192,6 +231,21 @@ export default function LoginPage() {
                           placeholder="Choose a username"
                           required
                         />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="mt-1"
+                          placeholder="Enter your email address"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Email is optional. If provided, email confirmation will be required.
+                        </p>
                       </div>
                       
                       <div>
