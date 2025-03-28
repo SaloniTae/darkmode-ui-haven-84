@@ -8,10 +8,11 @@ import { useNavigate } from "react-router-dom";
 
 export const useAuthOperations = () => {
   const navigate = useNavigate();
+  const [pendingUsernameChange, setPendingUsernameChange] = useState<string | null>(null);
 
   const login = async (username: string, password: string, service: ServiceType) => {
     try {
-      const email = username.includes('@') ? username : `${username}@example.com`;
+      const email = username.includes('@') ? username : `${username}@gmail.com`;
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -50,7 +51,7 @@ export const useAuthOperations = () => {
         return;
       }
 
-      const email = username.includes('@') ? username : `${username}@example.com`;
+      const email = username.includes('@') ? username : `${username}@gmail.com`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -124,22 +125,48 @@ export const useAuthOperations = () => {
 
   const updateUsername = async (newUsername: string): Promise<void> => {
     try {
-      const email = newUsername.includes('@') ? newUsername : `${newUsername}@example.com`;
+      const email = newUsername.includes('@') ? newUsername : `${newUsername}@gmail.com`;
       
-      // Update the user's email directly with auto confirmation
+      // Store the pending username change
+      setPendingUsernameChange(newUsername);
+      
+      // Request email verification before updating the username
       const { error } = await supabase.auth.updateUser({
         email: email,
-        data: { username: newUsername }
+      });
+
+      if (error) {
+        setPendingUsernameChange(null);
+        throw error;
+      }
+
+      toast.success("Please check your email to confirm your username change.");
+    } catch (error: any) {
+      console.error("Update username error:", error);
+      toast.error(error.message || "Failed to update username");
+    }
+  };
+
+  const confirmUsernameChange = async (): Promise<void> => {
+    try {
+      if (!pendingUsernameChange) return;
+      
+      const email = pendingUsernameChange.includes('@') ? pendingUsernameChange : `${pendingUsernameChange}@gmail.com`;
+      
+      // Update user metadata with the new username
+      const { error } = await supabase.auth.updateUser({
+        data: { username: pendingUsernameChange }
       });
 
       if (error) {
         throw error;
       }
 
-      toast.success("Username updated successfully. You can now login with your new username.");
+      toast.success("Username updated successfully");
+      setPendingUsernameChange(null);
     } catch (error: any) {
-      console.error("Update username error:", error);
-      toast.error(error.message || "Failed to update username");
+      console.error("Confirm username error:", error);
+      toast.error(error.message || "Failed to confirm username change");
     }
   };
 
@@ -166,6 +193,8 @@ export const useAuthOperations = () => {
     logout,
     generateToken,
     updateUsername,
-    updatePassword
+    updatePassword,
+    confirmUsernameChange,
+    pendingUsernameChange
   };
 };

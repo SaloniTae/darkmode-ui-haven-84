@@ -8,6 +8,8 @@ export interface AuthContextType {
   currentService: ServiceType | null;
   user: User | null;
   session: Session | null;
+  displayUsername: string;
+  pendingUsernameChange: string | null;
   login: (username: string, password: string, service: ServiceType) => Promise<void>;
   signup: (username: string, password: string, token: string, service: ServiceType) => Promise<void>;
   logout: () => Promise<void>;

@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ServiceType = "crunchyroll" | "netflix" | "prime";
 
@@ -17,8 +19,10 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot">("login");
   const [token, setToken] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login, signup, isAuthenticated, currentService } = useAuth();
   const navigate = useNavigate();
 
@@ -32,14 +36,41 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedService) {
-      await login(username, password, selectedService);
+      const processedUsername = username.includes('@') ? username : `${username}@gmail.com`;
+      await login(processedUsername, password, selectedService);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !selectedService) return;
-    await signup(username, password, token, selectedService);
+    const processedUsername = username.includes('@') ? username : `${username}@gmail.com`;
+    await signup(processedUsername, password, token, selectedService);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const processedEmail = resetEmail.includes('@') ? resetEmail : `${resetEmail}@gmail.com`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(processedEmail, {
+        redirectTo: window.location.origin + '/login?tab=reset',
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Password reset email sent! Check your inbox.");
+      setActiveTab("login");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send password reset email");
+    } finally {
+      setIsLoading(false);
+      setResetEmail("");
+    }
   };
 
   const handleServiceSelect = (service: ServiceType) => {
@@ -48,6 +79,7 @@ export default function LoginPage() {
     setPassword("");
     setToken("");
     setActiveTab("login");
+    setResetEmail("");
   };
 
   // Get service color for styling
@@ -121,11 +153,13 @@ export default function LoginPage() {
                   {getServiceName(selectedService)} Dashboard
                 </CardTitle>
                 <CardDescription>
-                  {activeTab === "login" ? "Sign in to your account" : "Create a new account"}
+                  {activeTab === "login" ? "Sign in to your account" : 
+                   activeTab === "signup" ? "Create a new account" : 
+                   "Reset your password"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")} className="w-full">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup" | "forgot")} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="login">Login</TabsTrigger>
                     <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -165,6 +199,13 @@ export default function LoginPage() {
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("forgot")}
+                          className="text-sm text-right w-full mt-1 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          Forgot password?
+                        </button>
                       </div>
                       
                       <Button 
@@ -240,18 +281,59 @@ export default function LoginPage() {
                       </Button>
                     </form>
                   </TabsContent>
+
+                  <TabsContent value="forgot">
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div>
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="mt-1"
+                          placeholder="Enter your email"
+                          required
+                        />
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={isLoading}
+                        style={{
+                          backgroundColor: getServiceColor(selectedService),
+                          color: 'white'
+                        }}
+                      >
+                        {isLoading ? "Sending..." : "Reset Password"}
+                      </Button>
+
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        className="w-full mt-2"
+                        onClick={() => setActiveTab("login")}
+                      >
+                        Back to Login
+                      </Button>
+                    </form>
+                  </TabsContent>
                 </Tabs>
               </CardContent>
               <CardFooter className="flex justify-center text-sm text-muted-foreground">
                 <p>
                   {activeTab === "login" 
                     ? "Don't have an account? " 
-                    : "Already have an account? "}
+                    : activeTab === "signup"
+                    ? "Already have an account? "
+                    : "Remember your password? "}
                   <button 
                     className="underline"
                     onClick={() => setActiveTab(activeTab === "login" ? "signup" : "login")}
                   >
-                    {activeTab === "login" ? "Sign up" : "Log in"}
+                    {activeTab === "login" ? "Sign up" : 
+                     activeTab === "signup" ? "Log in" : 
+                     "Log in"}
                   </button>
                 </p>
               </CardFooter>
