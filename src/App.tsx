@@ -9,7 +9,6 @@ import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { SetupAdmin } from "@/components/auth/SetupAdmin";
 import PersistLogin from "@/components/auth/PersistLogin";
 
 // Lazy load pages to improve initial loading performance
@@ -38,7 +37,6 @@ const App = memo(() => (
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <SetupAdmin />
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />

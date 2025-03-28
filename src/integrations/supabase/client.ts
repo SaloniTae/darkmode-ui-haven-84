@@ -13,6 +13,7 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       storage: localStorage,
+      autoRefreshToken: false, // Disable auto-refresh to rely on just the access token
     }
   }
 );

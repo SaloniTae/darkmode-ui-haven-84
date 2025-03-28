@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -36,13 +37,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-
+  
+  // This effect handles auth state changes from Supabase
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession?.user?.email);
         
-        if (currentSession) {
+        if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
           setIsAuthenticated(true);
@@ -51,7 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
           
-          if (event === 'SIGNED_IN' && location.pathname === '/login') {
+          // Only navigate if we're on login page to prevent loops
+          if (location.pathname === '/login') {
             navigate(`/${service}`, { replace: true });
           }
         } else if (event === 'SIGNED_OUT') {
@@ -60,11 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(false);
           setCurrentService(null);
           setIsAdmin(false);
-          navigate('/login', { replace: true });
+          
+          // Only navigate if we're not already on login page to prevent loops
+          if (location.pathname !== '/login') {
+            navigate('/login', { replace: true });
+          }
         }
       }
     );
 
+    // Initial session check
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
@@ -72,7 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error("Error getting session:", error);
-          throw error;
+          setIsLoading(false);
+          return;
         }
         
         if (data.session) {
@@ -84,21 +93,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
           
-          console.log("Session restored for:", data.session.user?.email, "service:", service);
+          console.log("Session found for:", data.session.user?.email, "service:", service);
           
-          if (location.pathname === '/login') {
+          // Only navigate if we're on login page and have valid session to prevent loops
+          if (location.pathname === '/login' && service) {
             navigate(`/${service}`, { replace: true });
           }
         } else {
           console.log("No existing session found");
           
-          if (location.pathname !== '/login') {
+          // Only navigate if we're not on login page and have no session to prevent loops
+          if (location.pathname !== '/login' && !location.pathname.includes('/login')) {
             navigate('/login', { replace: true });
           }
         }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error("Auth initialization error:", error);
-      } finally {
         setIsLoading(false);
       }
     };
