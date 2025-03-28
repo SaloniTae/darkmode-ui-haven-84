@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,6 +18,11 @@ interface AuthContextType {
   isAdmin: boolean;
   updateUsername: (newUsername: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentService: React.Dispatch<React.SetStateAction<ServiceType | null>>;
+  setIsAdmin: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,9 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const initialAuthCheckDone = React.useRef(false);
 
-  // Initialize auth state with improved session persistence
   useEffect(() => {
-    // First set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession?.user?.email);
@@ -46,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession.user);
           setIsAuthenticated(true);
           
-          // Get service from metadata
           const service = currentSession.user?.user_metadata?.service as ServiceType;
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
@@ -60,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then check for existing session
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
@@ -83,7 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("Session restored for:", data.session.user?.email, "service:", service);
         } else {
           console.log("No existing session found");
-          // Don't navigate here, let the route protection handle it
         }
         
         initialAuthCheckDone.current = true;
@@ -102,18 +101,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Handle redirects based on authentication state, but only after initial auth check
   useEffect(() => {
     if (isLoading || !initialAuthCheckDone.current) {
-      return; // Don't redirect until initial auth check is complete
+      return;
     }
     
-    // If user is authenticated and on login page, redirect to their service
     if (isAuthenticated && currentService && location.pathname === '/login') {
       console.log("Redirecting to service dashboard:", currentService);
       navigate(`/${currentService}`, { replace: true });
     } 
-    // If user is not authenticated and not on login page, redirect to login
     else if (!isAuthenticated && location.pathname !== '/login') {
       console.log("Redirecting to login page from:", location.pathname);
       navigate('/login', { replace: true });
@@ -123,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string, service: ServiceType) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${username}@example.com`, // Using username@example.com as email format
+        email: `${username}@example.com`,
         password,
       });
 
@@ -147,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (username: string, password: string, token: string, service: ServiceType) => {
     try {
-      // First verify token
       const { data: tokenData, error: tokenError } = await supabase
         .from('tokens')
         .select('*')
@@ -161,9 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Register user
       const { data, error } = await supabase.auth.signUp({
-        email: `${username}@example.com`, // Using username@example.com as email format
+        email: `${username}@example.com`,
         password,
         options: {
           data: {
@@ -177,7 +171,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      // Mark token as used
       await supabase
         .from('tokens')
         .update({ used: true })
@@ -213,10 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      // Generate a random token
       const token = Math.random().toString(36).substring(2, 10).toUpperCase();
       
-      // Insert directly without RLS policies getting in the way
       const { error } = await supabase
         .from('tokens')
         .insert([{ 
@@ -287,7 +278,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       generateToken,
       isAdmin,
       updateUsername,
-      updatePassword
+      updatePassword,
+      setSession,
+      setUser,
+      setIsAuthenticated,
+      setCurrentService,
+      setIsAdmin
     }}>
       {isLoading ? (
         <div className="flex items-center justify-center min-h-screen">

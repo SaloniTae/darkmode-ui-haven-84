@@ -4,12 +4,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { SetupAdmin } from "@/components/auth/SetupAdmin";
+import PersistLogin from "@/components/auth/PersistLogin";
 
 // Lazy load pages to improve initial loading performance
 const CrunchyrollAdmin = lazy(() => import("./pages/CrunchyrollAdmin"));
@@ -36,19 +37,19 @@ const App = memo(() => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <SetupAdmin />
-            <Suspense fallback={
-              <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              </div>
-            }>
-              <Routes>
-                {/* Public route for login */}
-                <Route path="/login" element={<LoginPage />} />
-                
-                {/* Protected routes for different streaming services */}
+        <AuthProvider>
+          <SetupAdmin />
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          }>
+            <Routes>
+              {/* Public route for login */}
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* Protected routes wrapped with PersistLogin */}
+              <Route element={<PersistLogin />}>
                 <Route path="/crunchyroll" element={
                   <ProtectedRoute requiredService="crunchyroll">
                     <CrunchyrollAdmin />
@@ -66,16 +67,16 @@ const App = memo(() => (
                     <PrimeAdmin />
                   </ProtectedRoute>
                 } />
-                
-                {/* Redirect root to login page */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                
-                {/* Fallback for unknown routes */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </Suspense>
-          </AuthProvider>
-        </BrowserRouter>
+              </Route>
+              
+              {/* Redirect root to login page */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              
+              {/* Fallback for unknown routes */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
