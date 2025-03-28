@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import useRefreshToken from "@/hooks/useRefreshToken";
 import { Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ export const PersistLogin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const refresh = useRefreshToken();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
     let isMounted = true;
@@ -20,8 +21,19 @@ export const PersistLogin = () => {
         
         if (result) {
           console.log("Session verified successfully");
+          // If we're on the login page and we have a valid session, redirect to appropriate service dashboard
+          if (window.location.pathname === '/login') {
+            const service = result.user?.user_metadata?.service;
+            if (service) {
+              navigate(`/${service}`, { replace: true });
+            }
+          }
         } else {
           console.log("No active session found");
+          // Only redirect to login if we're not already there
+          if (window.location.pathname !== '/login') {
+            navigate('/login', { replace: true });
+          }
         }
       } catch (err) {
         console.error("Failed to refresh session:", err);
