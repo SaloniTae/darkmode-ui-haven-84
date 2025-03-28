@@ -1,43 +1,43 @@
 
-import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import useRefreshToken from "@/hooks/useRefreshToken";
 import { Loader2 } from "lucide-react";
 
 export const PersistLogin = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const refresh = useRefreshToken();
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { setSession, setUser, setIsAuthenticated, setCurrentService, setIsAdmin } = useAuth();
   
   useEffect(() => {
     let isMounted = true;
 
     const verifySession = async () => {
       try {
-        // Attempt to refresh the session
-        const result = await refresh();
+        // Check if we have an existing session
+        const { data, error } = await supabase.auth.getSession();
         
-        if (result) {
-          console.log("Session verified successfully");
-          // If we're on the login page and we have a valid session, redirect to appropriate service dashboard
-          if (window.location.pathname === '/login') {
-            const service = result.user?.user_metadata?.service;
-            if (service) {
-              navigate(`/${service}`, { replace: true });
-            }
+        if (error) {
+          console.error("Error getting session:", error);
+          return;
+        }
+        
+        if (data.session) {
+          // We have a valid session, set all the auth state values
+          if (isMounted) {
+            setSession(data.session);
+            setUser(data.session.user);
+            setIsAuthenticated(true);
+            
+            const service = data.session.user?.user_metadata?.service;
+            setCurrentService(service || null);
+            setIsAdmin(service === 'crunchyroll');
+            
+            console.log("Session verified successfully");
           }
-        } 
-        // If explicitly not authenticated and not on login page, redirect to login
-        // Never redirect if authentication state is undefined
-        else if (isAuthenticated === false && window.location.pathname !== '/login') {
-          console.log("No active session found, redirecting to login page");
-          navigate('/login', { replace: true });
         }
       } catch (err) {
-        console.error("Failed to refresh session:", err);
-        // Never redirect on error, just log it
+        console.error("Failed to verify session:", err);
       } finally {
         // Only update state if component is still mounted
         if (isMounted) {
@@ -51,7 +51,7 @@ export const PersistLogin = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [setSession, setUser, setIsAuthenticated, setCurrentService, setIsAdmin]);
 
   return (
     <>

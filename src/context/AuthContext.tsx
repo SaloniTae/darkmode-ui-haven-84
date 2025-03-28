@@ -33,10 +33,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentService, setCurrentService] = useState<ServiceType | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
-  const initialAuthCheckDone = React.useRef(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -51,12 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const service = currentSession.user?.user_metadata?.service as ServiceType;
           setCurrentService(service || null);
           setIsAdmin(service === 'crunchyroll');
-        } else {
+          
+          if (event === 'SIGNED_IN' && location.pathname === '/login') {
+            navigate(`/${service}`, { replace: true });
+          }
+        } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
           setIsAuthenticated(false);
           setCurrentService(null);
           setIsAdmin(false);
+          navigate('/login', { replace: true });
         }
       }
     );
@@ -81,14 +85,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAdmin(service === 'crunchyroll');
           
           console.log("Session restored for:", data.session.user?.email, "service:", service);
+          
+          if (location.pathname === '/login') {
+            navigate(`/${service}`, { replace: true });
+          }
         } else {
           console.log("No existing session found");
+          
+          if (location.pathname !== '/login') {
+            navigate('/login', { replace: true });
+          }
         }
-        
-        initialAuthCheckDone.current = true;
       } catch (error) {
         console.error("Auth initialization error:", error);
-        initialAuthCheckDone.current = true;
       } finally {
         setIsLoading(false);
       }
@@ -99,27 +108,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    if (isLoading || !initialAuthCheckDone.current) {
-      return;
-    }
-    
-    if (isAuthenticated && currentService && location.pathname === '/login') {
-      console.log("Redirecting to service dashboard:", currentService);
-      navigate(`/${currentService}`, { replace: true });
-    } 
-    else if (!isAuthenticated && location.pathname !== '/login') {
-      console.log("Redirecting to login page from:", location.pathname);
-      navigate('/login', { replace: true });
-    }
-  }, [isAuthenticated, currentService, navigate, location.pathname, isLoading]);
+  }, [navigate, location.pathname]);
 
   const login = async (username: string, password: string, service: ServiceType) => {
     try {
+      const email = username.includes('@') ? username : `${username}@example.com`;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${username}@example.com`,
+        email,
         password,
       });
 
@@ -134,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       toast.success(`Logged in to ${service} dashboard successfully!`);
-      navigate(`/${service}`);
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "Failed to login");
@@ -156,8 +151,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      const email = username.includes('@') ? username : `${username}@example.com`;
+      
       const { data, error } = await supabase.auth.signUp({
-        email: `${username}@example.com`,
+        email,
         password,
         options: {
           data: {
@@ -177,7 +174,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', tokenData.id);
 
       toast.success(`Signed up to ${service} dashboard successfully!`);
-      navigate(`/${service}`);
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Failed to signup");
@@ -187,11 +183,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      setIsAuthenticated(false);
-      setCurrentService(null);
-      setUser(null);
-      setSession(null);
-      navigate("/login");
       toast.info("Logged out successfully");
     } catch (error: any) {
       console.error("Logout error:", error);
