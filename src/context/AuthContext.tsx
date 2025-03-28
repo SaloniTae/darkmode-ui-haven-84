@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -230,15 +231,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUsername = async (newUsername: string): Promise<void> => {
     try {
-      const email = newUsername.includes('@') ? newUsername : `${newUsername}@example.com`;
-      
+      // Only update the user_metadata with the new username
+      // Do not try to update the email address which is causing validation issues
       const { error } = await supabase.auth.updateUser({
-        email: email,
         data: { username: newUsername }
       });
 
       if (error) {
         throw error;
+      }
+
+      // Update the local user state to reflect the username change
+      if (user) {
+        const updatedUser = {
+          ...user,
+          user_metadata: {
+            ...user.user_metadata,
+            username: newUsername
+          }
+        };
+        setUser(updatedUser);
       }
 
       toast.success("Username updated successfully");
