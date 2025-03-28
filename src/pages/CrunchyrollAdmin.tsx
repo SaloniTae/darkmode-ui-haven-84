@@ -81,24 +81,65 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="admin" className="mt-0">
-            <AdminPanel adminConfig={dbData?.admin_config} />
+            <AdminPanel adminConfig={dbData?.admin_config || { superior_admins: [], inferior_admins: [] }} />
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
             <CredentialsPanel credentials={{
-            cred1: dbData?.cred1 || [],
-            cred2: dbData?.cred2 || [],
-            cred3: dbData?.cred3 || [],
-            cred4: dbData?.cred4 || []
-          }} slots={dbData?.settings?.slots || 0} />
+              cred1: dbData?.cred1 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred2: dbData?.cred2 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred3: dbData?.cred3 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred4: dbData?.cred4 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              }
+            }} slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">
-            <SlotsPanel slots={dbData?.settings?.slots || 0} />
+            <SlotsPanel slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
           <TabsContent value="referrals" className="mt-0">
-            <ReferralsPanel referrals={dbData?.referrals || {}} referralSettings={dbData?.referral_settings || {}} freeTrialClaims={dbData?.free_trial_claims || {}} />
+            <ReferralsPanel 
+              referrals={dbData?.referrals || {}} 
+              referralSettings={dbData?.referral_settings || {
+                buy_with_points_enabled: false,
+                free_trial_enabled: false,
+                points_per_referral: 0,
+                required_point: 0
+              }} 
+              freeTrialClaims={dbData?.free_trial_claims || {}} 
+            />
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-0">
@@ -106,7 +147,60 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
-            <UIConfigPanel uiConfig={dbData?.ui_config || {}} />
+            <UIConfigPanel uiConfig={dbData?.ui_config || {
+              approve_flow: {
+                account_format: "",
+                gif_url: "",
+                success_text: ""
+              },
+              confirmation_flow: {
+                button_text: "",
+                callback_data: "",
+                caption: "",
+                gif_url: "",
+                photo_url: ""
+              },
+              crunchyroll_screen: {
+                button_text: "",
+                callback_data: "",
+                caption: "",
+                photo_url: ""
+              },
+              freetrial_info: {
+                photo_url: ""
+              },
+              locked_flow: {
+                locked_text: ""
+              },
+              out_of_stock: {
+                gif_url: "",
+                messages: []
+              },
+              phonepe_screen: {
+                caption: "",
+                followup_text: "",
+                photo_url: ""
+              },
+              referral_info: {
+                photo_url: ""
+              },
+              reject_flow: {
+                error_text: "",
+                gif_url: ""
+              },
+              slot_booking: {
+                button_format: "",
+                callback_data: "",
+                caption: "",
+                gif_url: "",
+                photo_url: ""
+              },
+              start_command: {
+                buttons: [],
+                welcome_photo: "",
+                welcome_text: ""
+              }
+            }} />
           </TabsContent>
           
           <TabsContent value="users" className="mt-0">
