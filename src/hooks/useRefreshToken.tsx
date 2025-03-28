@@ -29,25 +29,26 @@ const useRefreshToken = () => {
         return data.session;
       }
       
-      // No session found, clear auth state
-      setSession(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      setCurrentService(null);
-      setIsAdmin(false);
+      // No session found, but don't clear auth state if it's undefined
+      // Only clear the state if we're sure we don't have a session
+      if (data.session === null) {
+        setSession(null);
+        setUser(null);
+        setIsAuthenticated(false);
+        setCurrentService(null);
+        setIsAdmin(false);
+        
+        console.log("No active session found during refresh");
+      } else {
+        console.log("Session state is undefined, not clearing auth state");
+      }
       
-      console.log("No active session found during refresh");
       return null;
     } catch (error) {
       console.error("Error refreshing token:", error);
       
-      // Clear auth state on error
-      setSession(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      setCurrentService(null);
-      setIsAdmin(false);
-      
+      // Don't clear auth state on error, just return null
+      // This prevents signing out users due to network errors or other issues
       return null;
     }
   };

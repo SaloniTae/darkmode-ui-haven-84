@@ -30,13 +30,14 @@ export const PersistLogin = () => {
           }
         } else {
           console.log("No active session found");
-          // Only redirect to login if we're not already there
-          if (window.location.pathname !== '/login') {
+          // Only redirect to login if we're not already there AND isAuthenticated is explicitly false (not undefined)
+          if (window.location.pathname !== '/login' && isAuthenticated === false) {
             navigate('/login', { replace: true });
           }
         }
       } catch (err) {
         console.error("Failed to refresh session:", err);
+        // Don't redirect on error, just log it
       } finally {
         // Only update state if component is still mounted
         if (isMounted) {
