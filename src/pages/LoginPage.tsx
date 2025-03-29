@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type ServiceType = "crunchyroll" | "netflix" | "prime";
 
@@ -104,7 +105,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background/10 to-background/30">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      
       <div className="w-full max-w-md">
         {selectedService ? (
           <Button 
@@ -116,12 +121,12 @@ export default function LoginPage() {
           </Button>
         ) : null}
         
-        <Card className="w-full">
+        <Card className="w-full border-border bg-card/80 backdrop-blur-sm shadow-lg">
           {!selectedService ? (
             // Service Selection
             <>
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Select Dashboard</CardTitle>
+                <CardTitle className="text-2xl font-bold">Select Dashboard</CardTitle>
                 <CardDescription>Choose which dashboard you want to access</CardDescription>
               </CardHeader>
               <CardContent>
@@ -130,7 +135,7 @@ export default function LoginPage() {
                     <Button
                       key={service}
                       onClick={() => handleServiceSelect(service)}
-                      className="w-full p-4 h-16 justify-start gap-3"
+                      className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px]"
                       style={{
                         backgroundColor: getServiceColor(service),
                         color: 'white'
@@ -329,7 +334,7 @@ export default function LoginPage() {
                     ? "Already have an account? "
                     : "Remember your password? "}
                   <button 
-                    className="underline"
+                    className="underline text-primary hover:text-primary/80 transition-colors"
                     onClick={() => setActiveTab(activeTab === "login" ? "signup" : "login")}
                   >
                     {activeTab === "login" ? "Sign up" : 

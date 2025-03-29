@@ -60,7 +60,7 @@ const PasswordResetPage = () => {
           <Logo size="lg" service="netflix" />
         </div>
         
-        <Card className="w-full">
+        <Card className="w-full border-border bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl text-center">Reset Password</CardTitle>
             <CardDescription className="text-center">
