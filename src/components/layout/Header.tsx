@@ -102,7 +102,11 @@ export const Header = memo(function Header() {
   const handleLogout = async () => {
     // Close dropdown before logout
     setDropdownOpen(false);
-    await logout();
+    
+    // Small delay to ensure dropdown is closed before logout
+    setTimeout(async () => {
+      await logout();
+    }, 100);
   };
 
   // Handle dialog close events
