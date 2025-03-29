@@ -172,6 +172,7 @@ export const useAuthOperations = () => {
 
   const updatePassword = async (newPassword: string): Promise<void> => {
     try {
+      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -181,6 +182,14 @@ export const useAuthOperations = () => {
       }
 
       toast.success("Password updated successfully");
+      
+      // Sign out from all devices after successful password change
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Redirect to login page
+      navigate('/login');
+      
+      toast.info("Logged out from all devices for security");
     } catch (error: any) {
       console.error("Update password error:", error);
       toast.error(error.message || "Failed to update password");
