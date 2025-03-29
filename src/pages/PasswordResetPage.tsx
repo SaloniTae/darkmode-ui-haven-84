@@ -33,10 +33,10 @@ const PasswordResetPage = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await updatePassword(password);
+      const result = await updatePassword(password);
       
-      if (error) {
-        toast.error(`Error updating password: ${error.message}`);
+      if (result.error) {
+        toast.error(`Error updating password: ${result.error.message}`);
       } else {
         toast.success("Password updated successfully. All other sessions have been logged out.");
         setTimeout(() => navigate("/login"), 2000);

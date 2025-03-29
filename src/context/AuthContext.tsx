@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { User, Session } from "@supabase/supabase-js";
@@ -20,7 +19,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.info("Auth state changed:", event, session ? "SESSION" : "NO SESSION");
@@ -33,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(false);
           navigate('/login');
         } else if (event === 'USER_UPDATED') {
-          // Force reload when user is updated (like password changes)
           setSession(session);
           setUser(session?.user ?? null);
           
@@ -43,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCurrentService(serviceMetadata || null);
             setIsAdmin(serviceMetadata === 'crunchyroll');
             
-            // Set display username
             const username = session.user?.email || session.user?.user_metadata?.username || "";
             const displayUsername = username.includes('@') ? username.split('@')[0] : username;
             setDisplayUsername(displayUsername);
@@ -59,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCurrentService(serviceMetadata || null);
           setIsAdmin(serviceMetadata === 'crunchyroll');
           
-          // Set display username
           const username = session.user?.email || session.user?.user_metadata?.username || "";
           const displayUsername = username.includes('@') ? username.split('@')[0] : username;
           setDisplayUsername(displayUsername);
@@ -73,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.info("Initial auth check:", session ? "Session found" : "No session found");
       setSession(session);
@@ -85,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCurrentService(serviceMetadata || null);
         setIsAdmin(serviceMetadata === 'crunchyroll');
         
-        // Set display username
         const username = session.user?.email || session.user?.user_metadata?.username || "";
         const displayUsername = username.includes('@') ? username.split('@')[0] : username;
         setDisplayUsername(displayUsername);
@@ -216,10 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const email = newUsername.includes('@') ? newUsername : `${newUsername}@gmail.com`;
       
-      // Store the pending username change
       setPendingUsernameChange(newUsername);
       
-      // Request email verification before updating the username
       const { error } = await supabase.auth.updateUser({
         email: email,
       });
@@ -236,9 +227,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updatePassword = async (newPassword: string): Promise<void> => {
+  const updatePassword = async (newPassword: string): Promise<{error?: any}> => {
     try {
-      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -249,16 +239,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast.success("Password updated successfully");
       
-      // Sign out from all devices after successful password change
       await supabase.auth.signOut({ scope: 'global' });
       
-      // Redirect to login page
       navigate('/login');
       
       toast.info("Logged out from all devices for security");
+      return {};
     } catch (error: any) {
       console.error("Update password error:", error);
       toast.error(error.message || "Failed to update password");
+      return { error };
     }
   };
 
