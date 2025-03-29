@@ -1,96 +1,127 @@
 
-import React, { createContext, useContext, useEffect } from "react";
-import { ServiceType, AuthContextType } from "@/types/auth";
-import { useAuthSession } from "@/hooks/useAuthSession";
-import { useAuthOperations } from "@/hooks/useAuthOperations";
-import { useLocation } from "react-router-dom";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
+import { User, Session } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+type AuthContextType = {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any; data: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any; data: any }>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any; data: any }>;
+  updatePassword: (password: string) => Promise<{ error: any; data: any }>;
+  generateToken: (service: "netflix" | "prime") => Promise<string>;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const {
-    session,
-    user,
-    isAuthenticated,
-    currentService,
-    isAdmin,
-    isLoading,
-    setSession,
-    setUser,
-    setIsAuthenticated,
-    setCurrentService,
-    setIsAdmin
-  } = useAuthSession();
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const {
-    login,
-    signup,
-    logout,
-    generateToken: baseGenerateToken,
-    updateUsername,
-    updatePassword,
-    confirmUsernameChange,
-    pendingUsernameChange
-  } = useAuthOperations();
-
-  const location = useLocation();
-
-  // Check if we're returning from an email confirmation
   useEffect(() => {
-    const handleEmailConfirmation = async () => {
-      const params = new URLSearchParams(location.search);
-      if (params.has('tab') && params.get('tab') === 'reset' && isAuthenticated) {
-        // Handle password reset confirmation
-      } else if (isAuthenticated && user?.email_confirmed_at) {
-        // Check if this is a username change confirmation
-        await confirmUsernameChange();
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.info("Auth state changed:", event, session ? "SESSION" : "NO SESSION");
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          navigate('/password-reset');
+        } else if (event === 'SIGNED_OUT') {
+          navigate('/login');
+        } else if (event === 'USER_UPDATED') {
+          // Force reload when user is updated (like password changes)
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Special case for password updates - we're handling this in validateSession
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsLoading(false);
       }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.info("Initial auth check:", session ? "Session found" : "No session found");
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
+  }, [navigate]);
 
-    handleEmailConfirmation();
-  }, [location, isAuthenticated, user?.email_confirmed_at]);
-
-  // Wrap the generateToken to include the current service and user ID
-  const generateToken = async (service: ServiceType): Promise<string | null> => {
-    return baseGenerateToken(service, currentService, user?.id);
+  const signIn = async (email: string, password: string) => {
+    const response = await supabase.auth.signInWithPassword({ email, password });
+    return response;
   };
 
-  // Get the display username, considering pending changes
-  const displayUsername = pendingUsernameChange 
-    ? user?.user_metadata?.username 
-    : user?.user_metadata?.username || user?.email?.split('@')[0] || '';
+  const signUp = async (email: string, password: string) => {
+    const response = await supabase.auth.signUp({ email, password });
+    return response;
+  };
 
-  return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      currentService, 
-      user,
-      session,
-      displayUsername,
-      pendingUsernameChange,
-      login, 
-      signup,
-      logout,
-      generateToken,
-      isAdmin,
-      updateUsername,
-      updatePassword,
-      setSession,
-      setUser,
-      setIsAuthenticated,
-      setCurrentService,
-      setIsAdmin
-    }}>
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        children
-      )}
-    </AuthContext.Provider>
-  );
-};
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const resetPassword = async (email: string) => {
+    const response = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/password-reset',
+    });
+    return response;
+  };
+
+  const updatePassword = async (password: string) => {
+    // Update the password
+    const response = await supabase.auth.updateUser({ password });
+    
+    if (response.error) {
+      return response;
+    }
+    
+    // If password update was successful, log out all other sessions
+    // by creating a new session (current one) and invalidating others
+    try {
+      await supabase.auth.refreshSession();
+      toast.success("Password updated and all other sessions have been logged out");
+    } catch (error) {
+      console.error("Error refreshing session after password change:", error);
+    }
+    
+    return response;
+  };
+
+  const generateToken = async (service: "netflix" | "prime"): Promise<string> => {
+    // Mock implementation - in a real app, you would call a backend API
+    return `${service}_${Math.random().toString(36).substring(2, 15)}`;
+  };
+
+  const value = {
+    user,
+    session,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    updatePassword,
+    generateToken,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

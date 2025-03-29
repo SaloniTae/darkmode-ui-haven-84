@@ -1,33 +1,24 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredService?: "crunchyroll" | "netflix" | "prime" | null;
+  children: ReactNode;
+  requiredService?: "crunchyroll" | "netflix" | "prime";
 }
 
-export const ProtectedRoute = ({ 
-  children, 
-  requiredService = null 
-}: ProtectedRouteProps) => {
-  const { isAuthenticated, currentService } = useAuth();
-  const location = useLocation();
+export const ProtectedRoute = ({ children, requiredService }: ProtectedRouteProps) => {
+  const { user } = useAuth();
 
-  console.log("ProtectedRoute check - isAuthenticated:", isAuthenticated, "currentService:", currentService, "requiredService:", requiredService);
-
-  // If not authenticated, redirect to login
-  if (!isAuthenticated) {
-    console.log("Not authenticated, redirecting to login");
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // Basic protection - user must be logged in
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  // If a specific service is required, check if the user is authenticated for that service
-  if (requiredService && currentService !== requiredService) {
-    console.log("Wrong service, redirecting to login");
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Return children only if all authentication checks pass
+  // Optional service-specific authorization can be implemented here
+  // For example, checking if the user has access to the specific service
+  // This is a placeholder - you would typically check this with your backend
+  
   return <>{children}</>;
 };

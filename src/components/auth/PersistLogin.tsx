@@ -1,70 +1,70 @@
 
 import { useEffect, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-export const PersistLogin = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { setSession, setUser, setIsAuthenticated, setCurrentService, setIsAdmin } = useAuth();
+const PersistLogin = () => {
+  const { user, session, isLoading } = useAuth();
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
   const location = useLocation();
-  
-  useEffect(() => {
-    let isMounted = true;
 
-    const verifySession = async () => {
+  useEffect(() => {
+    const validateSession = async () => {
+      if (!session) {
+        setIsValidating(false);
+        setIsValid(false);
+        return;
+      }
+
       try {
-        // Check if we have an existing session
-        const { data, error } = await supabase.auth.getSession();
+        // Verify if the session is still valid by checking with Supabase
+        const { data, error } = await supabase.auth.getUser();
         
-        if (error) {
-          console.error("Error getting session:", error);
-          if (isMounted) setIsLoading(false);
-          return;
-        }
-        
-        if (data.session) {
-          // We have a valid session, set all the auth state values
-          if (isMounted) {
-            console.log("Session found, setting auth state");
-            setSession(data.session);
-            setUser(data.session.user);
-            setIsAuthenticated(true);
-            
-            const service = data.session.user?.user_metadata?.service;
-            setCurrentService(service || null);
-            setIsAdmin(service === 'crunchyroll');
+        if (error || !data.user) {
+          console.info("Session validation failed:", error?.message || "No user found");
+          setIsValid(false);
+        } else {
+          // Check if the session's auth.current_session_id matches the current session's id
+          // This is important for detecting password changes which issue new sessions
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !sessionData.session) {
+            console.info("Current session check failed:", sessionError?.message || "No session found");
+            setIsValid(false);
+          } else {
+            console.info("Session successfully validated");
+            setIsValid(true);
           }
         }
       } catch (err) {
-        console.error("Failed to verify session:", err);
+        console.error("Error validating session:", err);
+        setIsValid(false);
       } finally {
-        // Only update state if component is still mounted
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        setIsValidating(false);
       }
     };
 
-    verifySession();
+    validateSession();
+  }, [session, location.pathname]); // Re-run on path changes (page refresh/navigation)
 
-    return () => {
-      isMounted = false;
-    };
-  }, [setSession, setUser, setIsAuthenticated, setCurrentService, setIsAdmin]);
+  if (isLoading || isValidating) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  return (
-    <>
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      ) : (
-        <Outlet />
-      )}
-    </>
-  );
+  // If there's no user or the session is invalid, redirect to login
+  if (!user || !isValid) {
+    console.info("No valid session, redirecting to login");
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
 };
 
 export default PersistLogin;
