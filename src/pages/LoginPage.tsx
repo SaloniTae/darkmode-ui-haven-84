@@ -146,7 +146,7 @@ export default function LoginPage() {
                 </div>
                 <CardTitle style={{
               color: getServiceColor(selectedService)
-            }} className="text-2xl text-black">
+            }} className="text-2xl text-inherit">
                   {getServiceName(selectedService)} Dashboard
                 </CardTitle>
                 <CardDescription>
