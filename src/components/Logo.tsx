@@ -26,8 +26,8 @@ export const Logo = memo(function Logo({
   useEffect(() => {
     const updateEffectiveTheme = () => {
       if (theme === 'system') {
-        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setEffectiveTheme(isDarkMode ? 'dark' : 'light');
+        // For system mode, we'll show light theme logos
+        setEffectiveTheme('light');
       } else {
         setEffectiveTheme(theme as 'dark' | 'light');
       }
