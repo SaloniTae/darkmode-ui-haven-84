@@ -147,17 +147,17 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-        <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 h-auto p-1 glass-morphism">
+        <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 h-auto p-1 glass-morphism">
           <TabsTrigger value="start_command">Start</TabsTrigger>
           <TabsTrigger value="crunchyroll_screen">Crunchyroll</TabsTrigger>
           <TabsTrigger value="slot_booking">Slot Booking</TabsTrigger>
           <TabsTrigger value="confirmation_flow">Confirmation</TabsTrigger>
           <TabsTrigger value="phonepe_screen">PhonePe</TabsTrigger>
           <TabsTrigger value="approve_flow">Approve</TabsTrigger>
+          <TabsTrigger value="posters">Posters</TabsTrigger>
           <TabsTrigger value="other">Other</TabsTrigger>
         </TabsList>
         
-        {/* Start Command Section */}
         <TabsContent value="start_command" className="mt-0">
           <DataCard title="Start Command Configuration">
             <div className="space-y-6">
@@ -260,7 +260,6 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
           </DataCard>
         </TabsContent>
         
-        {/* Crunchyroll Screen Section */}
         <TabsContent value="crunchyroll_screen" className="mt-0">
           <DataCard title="Crunchyroll Screen Configuration">
             <div className="space-y-6">
@@ -341,7 +340,6 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
           </DataCard>
         </TabsContent>
         
-        {/* Other Sections (similar pattern) */}
         <TabsContent value="slot_booking" className="mt-0">
           <DataCard title="Slot Booking Configuration">
             <div className="space-y-6">
@@ -704,6 +702,72 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
               )}
             </div>
           </DataCard>
+        </TabsContent>
+        
+        <TabsContent value="posters" className="mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <DataCard title="Referral Info">
+              <div className="space-y-4">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="referral-photo">Referral Photo URL</Label>
+                    <Input
+                      id="referral-photo"
+                      value={editedConfig.referral_info.photo_url}
+                      onChange={(e) => handleInputChange('referral_info', 'photo_url', e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 text-muted-foreground">Referral Photo</h3>
+                    <div className="glass-morphism p-2 rounded-md overflow-hidden">
+                      <div className="relative aspect-video bg-black/20 rounded overflow-hidden">
+                        <img 
+                          src={editedConfig.referral_info.photo_url}
+                          alt="Referral Information"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/400x225?text=Image+Not+Found';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DataCard>
+            
+            <DataCard title="Free Trial Info">
+              <div className="space-y-4">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="freetrial-photo">Free Trial Photo URL</Label>
+                    <Input
+                      id="freetrial-photo"
+                      value={editedConfig.freetrial_info.photo_url}
+                      onChange={(e) => handleInputChange('freetrial_info', 'photo_url', e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 text-muted-foreground">Free Trial Photo</h3>
+                    <div className="glass-morphism p-2 rounded-md overflow-hidden">
+                      <div className="relative aspect-video bg-black/20 rounded overflow-hidden">
+                        <img 
+                          src={editedConfig.freetrial_info.photo_url}
+                          alt="Free Trial Information"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/400x225?text=Image+Not+Found';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DataCard>
+          </div>
         </TabsContent>
         
         <TabsContent value="other" className="mt-0">
