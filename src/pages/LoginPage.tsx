@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/components/ThemeProvider";
 
 type ServiceType = "crunchyroll" | "netflix" | "prime";
 
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [token, setToken] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { theme } = useTheme();
   const {
     login,
     signup,
@@ -99,6 +101,15 @@ export default function LoginPage() {
     }
   };
 
+  // Determine button styling based on theme
+  const getButtonStyle = () => {
+    if (theme === 'dark') {
+      return "bg-[#1c1c1c] hover:bg-[#2a2a2a] text-white border border-gray-700/30";
+    } else {
+      return "bg-[#f1f1f1] hover:bg-[#e5e5e5] text-black border border-gray-300/30";
+    }
+  };
+
   return <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background/10 to-background/30">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -123,7 +134,7 @@ export default function LoginPage() {
                     <Button 
                       key={service} 
                       onClick={() => handleServiceSelect(service)} 
-                      className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px] bg-[#1c1c1c] dark:bg-[#1c1c1c] hover:bg-[#2a2a2a] hover:dark:bg-[#2a2a2a] border border-gray-700/30 text-white dark:text-white light:text-white"
+                      className={`w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px] ${getButtonStyle()}`}
                     >
                       <Logo service={service} size="sm" />
                       <span className="text-lg font-medium capitalize">{getServiceName(service)}</span>
@@ -174,7 +185,7 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30"
+                        className={`w-full ${getButtonStyle()}`}
                       >
                         <LogIn className="mr-2 h-4 w-4" /> Sign In
                       </Button>
@@ -205,7 +216,7 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30"
+                        className={`w-full ${getButtonStyle()}`}
                       >
                         <UserPlus className="mr-2 h-4 w-4" /> Sign Up
                       </Button>
@@ -221,7 +232,7 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30" 
+                        className={`w-full ${getButtonStyle()}`}
                         disabled={isLoading}
                       >
                         {isLoading ? "Sending..." : "Reset Password"}
