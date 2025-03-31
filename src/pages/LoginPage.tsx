@@ -11,7 +11,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
 type ServiceType = "crunchyroll" | "netflix" | "prime";
+
 export default function LoginPage() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
   const [username, setUsername] = useState("");
@@ -29,12 +31,12 @@ export default function LoginPage() {
   } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && currentService) {
       navigate(`/${currentService}`);
     }
   }, [isAuthenticated, currentService, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedService) {
@@ -42,19 +44,20 @@ export default function LoginPage() {
       await login(processedUsername, password, selectedService);
     }
   };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !selectedService) return;
     const processedUsername = username.includes('@') ? username : `${username}@gmail.com`;
     await signup(processedUsername, password, token, selectedService);
   };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       const processedEmail = resetEmail.includes('@') ? resetEmail : `${resetEmail}@gmail.com`;
 
-      // Use window.location.origin instead of hardcoding localhost:3000
       const {
         error
       } = await supabase.auth.resetPasswordForEmail(processedEmail, {
@@ -72,6 +75,7 @@ export default function LoginPage() {
       setResetEmail("");
     }
   };
+
   const handleServiceSelect = (service: ServiceType) => {
     setSelectedService(service);
     setUsername("");
@@ -81,21 +85,19 @@ export default function LoginPage() {
     setResetEmail("");
   };
 
-  // Get service color for styling
   const getServiceColor = (service: ServiceType) => {
     switch (service) {
       case "crunchyroll":
-        return "#F47521";
+        return "#1c1c1c";
       case "netflix":
-        return "#E50914";
+        return "#1c1c1c";
       case "prime":
-        return "#00A8E1";
+        return "#1c1c1c";
       default:
-        return "#F47521";
+        return "#1c1c1c";
     }
   };
 
-  // Get service name for display
   const getServiceName = (service: ServiceType) => {
     switch (service) {
       case "crunchyroll":
@@ -108,6 +110,7 @@ export default function LoginPage() {
         return "Service";
     }
   };
+
   return <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background/10 to-background/30">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -128,13 +131,16 @@ export default function LoginPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-4">
-                  {(["crunchyroll", "netflix", "prime"] as ServiceType[]).map(service => <Button key={service} onClick={() => handleServiceSelect(service)} className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px]" style={{
-                backgroundColor: getServiceColor(service),
-                color: 'white'
-              }}>
+                  {(["crunchyroll", "netflix", "prime"] as ServiceType[]).map(service => (
+                    <Button 
+                      key={service} 
+                      onClick={() => handleServiceSelect(service)} 
+                      className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px] bg-[#1c1c1c] dark:bg-[#1c1c1c] border border-gray-700/30 hover:bg-[#2a2a2a] hover:dark:bg-[#2a2a2a]"
+                    >
                       <Logo service={service} size="sm" />
                       <span className="text-lg font-medium capitalize">{getServiceName(service)}</span>
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </CardContent>
             </> :
@@ -144,9 +150,7 @@ export default function LoginPage() {
                 <div className="flex justify-center mb-2">
                   <Logo service={selectedService} size="lg" />
                 </div>
-                <CardTitle style={{
-              color: getServiceColor(selectedService)
-            }} className="text-2xl text-inherit">
+                <CardTitle className="text-2xl">
                   {getServiceName(selectedService)} Dashboard
                 </CardTitle>
                 <CardDescription>
@@ -180,10 +184,10 @@ export default function LoginPage() {
                         </button>
                       </div>
                       
-                      <Button type="submit" className="w-full" style={{
-                    backgroundColor: getServiceColor(selectedService),
-                    color: 'white'
-                  }}>
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30"
+                      >
                         <LogIn className="mr-2 h-4 w-4" /> Sign In
                       </Button>
                     </form>
@@ -211,10 +215,10 @@ export default function LoginPage() {
                         <Input id="token" value={token} onChange={e => setToken(e.target.value)} className="mt-1" placeholder="Enter your invitation token" required />
                       </div>
                       
-                      <Button type="submit" className="w-full" style={{
-                    backgroundColor: getServiceColor(selectedService),
-                    color: 'white'
-                  }}>
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30"
+                      >
                         <UserPlus className="mr-2 h-4 w-4" /> Sign Up
                       </Button>
                     </form>
@@ -227,10 +231,11 @@ export default function LoginPage() {
                         <Input id="reset-email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="mt-1" placeholder="Enter your email" required />
                       </div>
                       
-                      <Button type="submit" className="w-full" disabled={isLoading} style={{
-                    backgroundColor: getServiceColor(selectedService),
-                    color: 'white'
-                  }}>
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30" 
+                        disabled={isLoading}
+                      >
                         {isLoading ? "Sending..." : "Reset Password"}
                       </Button>
 
