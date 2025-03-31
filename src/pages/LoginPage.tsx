@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -85,19 +86,6 @@ export default function LoginPage() {
     setResetEmail("");
   };
 
-  const getServiceColor = (service: ServiceType) => {
-    switch (service) {
-      case "crunchyroll":
-        return "#1c1c1c";
-      case "netflix":
-        return "#1c1c1c";
-      case "prime":
-        return "#1c1c1c";
-      default:
-        return "#1c1c1c";
-    }
-  };
-
   const getServiceName = (service: ServiceType) => {
     switch (service) {
       case "crunchyroll":
@@ -135,7 +123,7 @@ export default function LoginPage() {
                     <Button 
                       key={service} 
                       onClick={() => handleServiceSelect(service)} 
-                      className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px] bg-[#1c1c1c] dark:bg-[#1c1c1c] border border-gray-700/30 hover:bg-[#2a2a2a] hover:dark:bg-[#2a2a2a]"
+                      className="w-full p-4 h-16 justify-start gap-3 transition-all hover:translate-y-[-2px] bg-[#1c1c1c] dark:bg-[#1c1c1c] hover:bg-[#2a2a2a] hover:dark:bg-[#2a2a2a] border border-gray-700/30 text-white dark:text-white light:text-white"
                     >
                       <Logo service={service} size="sm" />
                       <span className="text-lg font-medium capitalize">{getServiceName(service)}</span>
@@ -186,7 +174,7 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30"
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30"
                       >
                         <LogIn className="mr-2 h-4 w-4" /> Sign In
                       </Button>
@@ -217,7 +205,7 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30"
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30"
                       >
                         <UserPlus className="mr-2 h-4 w-4" /> Sign Up
                       </Button>
@@ -233,13 +221,18 @@ export default function LoginPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] border border-gray-700/30" 
+                        className="w-full bg-[#1c1c1c] hover:bg-[#2a2a2a] dark:bg-[#1c1c1c] dark:hover:bg-[#2a2a2a] text-white dark:text-white light:text-white border border-gray-700/30" 
                         disabled={isLoading}
                       >
                         {isLoading ? "Sending..." : "Reset Password"}
                       </Button>
 
-                      <Button type="button" variant="outline" className="w-full mt-2" onClick={() => setActiveTab("login")}>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full mt-2" 
+                        onClick={() => setActiveTab("login")}
+                      >
                         Back to Login
                       </Button>
                     </form>
