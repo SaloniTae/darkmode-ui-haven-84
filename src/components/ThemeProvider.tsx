@@ -55,6 +55,7 @@ export function ThemeProvider({
 
   // Function to determine if system prefers dark mode
   const getSystemTheme = (): "dark" | "light" => {
+    if (typeof window === 'undefined') return 'dark';
     return window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
@@ -76,10 +77,8 @@ export function ThemeProvider({
     root.classList.add(effectiveTheme);
     setResolvedTheme(effectiveTheme);
     
-    // Only save explicit theme choices to localStorage
-    if (theme !== "system") {
-      setStorageItem("theme", theme);
-    }
+    // Save theme choice to localStorage (including system)
+    setStorageItem("theme", theme);
     
     // Listen for system theme changes when in system mode
     if (theme === "system") {
@@ -93,23 +92,27 @@ export function ThemeProvider({
         setResolvedTheme(newSystemTheme);
       };
       
-      // Add the event listener (use newer API if available)
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener("change", handleChange);
-      } else {
-        // Fallback for older browsers
-        mediaQuery.addListener(handleChange);
-      }
-      
-      return () => {
-        // Clean up the event listener
-        if (mediaQuery.removeEventListener) {
-          mediaQuery.removeEventListener("change", handleChange);
+      try {
+        // Add the event listener (use newer API if available)
+        if (mediaQuery.addEventListener) {
+          mediaQuery.addEventListener("change", handleChange);
         } else {
           // Fallback for older browsers
-          mediaQuery.removeListener(handleChange);
+          mediaQuery.addListener(handleChange);
         }
-      };
+        
+        return () => {
+          // Clean up the event listener
+          if (mediaQuery.removeEventListener) {
+            mediaQuery.removeEventListener("change", handleChange);
+          } else {
+            // Fallback for older browsers
+            mediaQuery.removeListener(handleChange);
+          }
+        };
+      } catch (error) {
+        console.error("Error setting up media query listener:", error);
+      }
     }
   }, [theme]);
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -27,7 +26,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const { theme } = useTheme();
+  const { theme: resolvedTheme } = useTheme();
   const {
     login,
     signup,
@@ -37,7 +36,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate loading for smoother UI transitions
     const timer = setTimeout(() => {
       setIsPageLoading(false);
     }, 800);
@@ -54,6 +52,12 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedService) {
+      try {
+        localStorage.setItem("lastService", selectedService);
+      } catch (error) {
+        console.warn("Could not save service to localStorage", error);
+      }
+      
       const processedUsername = username.includes('@') ? username : `${username}@gmail.com`;
       await login(processedUsername, password, selectedService);
     }
@@ -62,6 +66,13 @@ export default function LoginPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !selectedService) return;
+    
+    try {
+      localStorage.setItem("lastService", selectedService);
+    } catch (error) {
+      console.warn("Could not save service to localStorage", error);
+    }
+    
     const processedUsername = username.includes('@') ? username : `${username}@gmail.com`;
     await signup(processedUsername, password, token, selectedService);
   };
@@ -71,11 +82,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const processedEmail = resetEmail.includes('@') ? resetEmail : `${resetEmail}@gmail.com`;
+      
+      const redirectUrl = selectedService 
+        ? `${window.location.origin}/password-reset?service=${selectedService}`
+        : `${window.location.origin}/password-reset`;
 
       const {
         error
       } = await supabase.auth.resetPasswordForEmail(processedEmail, {
-        redirectTo: `${window.location.origin}/password-reset`
+        redirectTo: redirectUrl
       });
       if (error) {
         throw error;
@@ -112,9 +127,8 @@ export default function LoginPage() {
     }
   };
 
-  // Determine button styling based on theme
   const getButtonStyle = () => {
-    if (theme === 'dark') {
+    if (resolvedTheme === 'dark') {
       return "bg-[#1c1c1c] hover:bg-[#2a2a2a] text-white border border-gray-700/30";
     } else {
       return "bg-[#f1f1f1] hover:bg-[#e5e5e5] text-black border border-gray-300/30";
@@ -280,7 +294,7 @@ export default function LoginPage() {
                     </button>
                   </p>
                 </CardFooter>
-              </>}
+              </>
           </Card>
         )}
       </div>
