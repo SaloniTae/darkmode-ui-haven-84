@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const { theme: resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const {
     login,
     signup,

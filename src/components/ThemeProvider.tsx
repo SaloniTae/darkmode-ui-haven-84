@@ -66,10 +66,12 @@ export function ThemeProvider({
     let effectiveTheme: "dark" | "light";
     
     if (theme === "system") {
-      // For system theme, directly apply the system theme as either dark or light
+      // Force dark mode if system preference is dark, light mode otherwise
       effectiveTheme = getSystemTheme();
+      console.log("System theme detected:", effectiveTheme);
     } else {
       effectiveTheme = theme as "dark" | "light";
+      console.log("User selected theme:", effectiveTheme);
     }
     
     root.classList.add(effectiveTheme);
@@ -84,6 +86,7 @@ export function ThemeProvider({
       
       const handleChange = () => {
         const newSystemTheme = getSystemTheme();
+        console.log("System theme changed to:", newSystemTheme);
         root.classList.remove("light", "dark");
         root.classList.add(newSystemTheme);
         setResolvedTheme(newSystemTheme);
