@@ -19,7 +19,7 @@ const PasswordResetPage = () => {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     // Simulate loading for smoother UI transitions
@@ -62,9 +62,9 @@ const PasswordResetPage = () => {
     }
   };
 
-  // Determine button styling based on theme
+  // Determine button styling based on resolved theme
   const getButtonStyle = () => {
-    if (theme === 'dark') {
+    if (resolvedTheme === 'dark') {
       return "bg-[#1c1c1c] hover:bg-[#2a2a2a] text-white border border-gray-700/30";
     } else {
       return "bg-[#f1f1f1] hover:bg-[#e5e5e5] text-black border border-gray-300/30";
