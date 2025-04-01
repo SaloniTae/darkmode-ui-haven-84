@@ -18,7 +18,7 @@ const PasswordResetPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [service, setService] = useState<ServiceType>("netflix");
+  const [service, setService] = useState<ServiceType>("crunchyroll");
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,13 +69,13 @@ const PasswordResetPage = () => {
     try {
       const result = await updatePassword(password);
       
-      if (result.error) {
+      if (result && result.error) {
         toast.error(`Error updating password: ${result.error.message}`);
       } else {
         toast.success("Password updated successfully. All other sessions have been logged out.");
         setTimeout(() => navigate("/login"), 2000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during password reset:", error);
       toast.error("An unexpected error occurred");
     } finally {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -135,15 +136,18 @@ export default function LoginPage() {
     }
   };
 
-  return <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background/10 to-background/30 transition-colors duration-300">
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background/10 to-background/30 transition-colors duration-300">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       
       <div className="w-full max-w-md">
-        {selectedService ? <Button variant="ghost" onClick={() => setSelectedService(null)} className="mb-6 animate-fade-in">
+        {selectedService ? (
+          <Button variant="ghost" onClick={() => setSelectedService(null)} className="mb-6 animate-fade-in">
             ← Back to selection
-          </Button> : null}
+          </Button>
+        ) : null}
         
         {isPageLoading ? (
           <div className="w-full space-y-4">
@@ -151,9 +155,9 @@ export default function LoginPage() {
           </div>
         ) : (
           <Card className="w-full border-border bg-card/80 backdrop-blur-sm shadow-lg animate-scale-in transition-all duration-300">
-            {!selectedService ?
-          // Service Selection
-          <>
+            {!selectedService ? (
+              // Service Selection
+              <>
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl font-bold">Select Dashboard</CardTitle>
                   <CardDescription>Choose which dashboard you want to access</CardDescription>
@@ -173,9 +177,10 @@ export default function LoginPage() {
                     ))}
                   </div>
                 </CardContent>
-              </> :
-          // Authentication Form
-          <>
+              </>
+            ) : (
+              // Authentication Form
+              <>
                 <CardHeader className="text-center">
                   <div className="flex justify-center mb-2">
                     <Logo service={selectedService} size="lg" />
@@ -295,8 +300,10 @@ export default function LoginPage() {
                   </p>
                 </CardFooter>
               </>
+            )}
           </Card>
         )}
       </div>
-    </div>;
+    </div>
+  );
 }
