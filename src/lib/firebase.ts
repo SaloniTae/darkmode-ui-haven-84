@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, get, set, remove, update } from "firebase/database";
+import { getDatabase, ref, get, set, remove, update, onValue, off } from "firebase/database";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -40,4 +40,16 @@ export const removeData = async (path: string) => {
   const dataRef = ref(database, path);
   await remove(dataRef);
   return true;
+};
+
+// Realtime listener functions
+export const subscribeToData = (path: string, callback: (data: any) => void) => {
+  const dataRef = ref(database, path);
+  onValue(dataRef, (snapshot) => {
+    const data = snapshot.exists() ? snapshot.val() : null;
+    callback(data);
+  });
+  
+  // Return unsubscribe function
+  return () => off(dataRef);
 };

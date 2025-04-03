@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle, Trash } from "lucide-react";
+import { updateData, setData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -143,6 +143,31 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     });
   };
 
+  const handleDeleteCredential = async (credKey: string) => {
+    try {
+      await removeData(`/${credKey}`);
+      
+      // Update local state by removing the credential
+      const updatedCredentials = { ...editedCredentials };
+      delete updatedCredentials[credKey];
+      
+      setEditedCredentials(updatedCredentials);
+      toast.success(`${credKey} deleted successfully`);
+    } catch (error) {
+      console.error(`Error deleting ${credKey}:`, error);
+      toast.error(`Failed to delete ${credKey}`);
+    }
+  };
+
+  const confirmDeleteCredential = (credKey: string) => {
+    setConfirmationDialog({
+      open: true,
+      action: () => handleDeleteCredential(credKey),
+      title: `Delete ${credKey}`,
+      description: `Are you sure you want to delete ${credKey}? This action cannot be undone.`
+    });
+  };
+
   const formatDate = (dateString: string): string => {
     try {
       return format(parse(dateString, 'yyyy-MM-dd', new Date()), 'MMM dd, yyyy');
@@ -218,7 +243,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Object.entries(credentials).map(([credKey, cred]) => {
+        {Object.entries(editedCredentials).map(([credKey, cred]) => {
           const isEditing = editingCredential === credKey;
           const currentCred = editedCredentials[credKey as keyof typeof credentials];
           
@@ -386,6 +411,13 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                     </div>
                     
                     <div className="flex justify-end space-x-2 pt-2">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => confirmDeleteCredential(credKey)}
+                      >
+                        <Trash className="mr-2 h-4 w-4" /> Delete
+                      </Button>
                       <Button 
                         variant={currentCred.locked === 0 ? "destructive" : "outline"} 
                         size="sm"

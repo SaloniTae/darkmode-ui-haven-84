@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -10,30 +10,47 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchPrimeData } from "@/lib/firebase-prime";
+import { fetchPrimeData, subscribeToPrimeData } from "@/lib/firebase-prime";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
 export default function PrimeAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Initial data load
+      const data = await fetchPrimeData("/");
+      setDbData(data);
+      toast.success("Prime database loaded successfully");
+      
+      // Set up real-time listener
+      unsubscribeRef.current = subscribeToPrimeData("/", (realtimeData) => {
+        if (realtimeData) {
+          setDbData(realtimeData);
+        }
+      });
+    } catch (error) {
+      console.error("Error loading Prime database:", error);
+      toast.error("Failed to load Prime database");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchPrimeData("/");
-        setDbData(data);
-        toast.success("Prime database loaded successfully");
-      } catch (error) {
-        console.error("Error loading Prime database:", error);
-        toast.error("Failed to load Prime database");
-      } finally {
-        setLoading(false);
+    loadData();
+    
+    // Cleanup function
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
       }
     };
-    loadData();
-  }, []);
+  }, [loadData]);
 
   if (loading) {
     return <MainLayout className="flex items-center justify-center min-h-screen">
@@ -74,11 +91,16 @@ export default function PrimeAdmin() {
           
           <TabsContent value="credentials" className="mt-0">
             <CredentialsPanel credentials={{
-            cred1: dbData.cred1,
-            cred2: dbData.cred2,
-            cred3: dbData.cred3,
-            cred4: dbData.cred4
-          }} slots={dbData.settings.slots} />
+              cred1: dbData.cred1,
+              cred2: dbData.cred2,
+              cred3: dbData.cred3,
+              cred4: dbData.cred4,
+              ...Object.fromEntries(
+                Object.entries(dbData)
+                  .filter(([key]) => key.startsWith('cred') && !['cred1', 'cred2', 'cred3', 'cred4'].includes(key))
+                  .map(([key, value]) => [key, value])
+              )
+            }} slots={dbData.settings.slots} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">

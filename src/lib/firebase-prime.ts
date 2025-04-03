@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, get, set, remove, update } from "firebase/database";
+import { getDatabase, ref, get, set, remove, update, onValue, off } from "firebase/database";
 
 // Firebase configuration for Prime
 const firebaseConfig = {
@@ -40,4 +40,16 @@ export const removePrimeData = async (path: string) => {
   const dataRef = ref(primeDatabase, path);
   await remove(dataRef);
   return true;
+};
+
+// Realtime listener functions for Prime
+export const subscribeToPrimeData = (path: string, callback: (data: any) => void) => {
+  const dataRef = ref(primeDatabase, path);
+  onValue(dataRef, (snapshot) => {
+    const data = snapshot.exists() ? snapshot.val() : null;
+    callback(data);
+  });
+  
+  // Return unsubscribe function
+  return () => off(dataRef);
 };
