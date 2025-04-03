@@ -28,7 +28,7 @@ export function AdminPanel({ adminConfig }: AdminPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isRemovingSuperior, setIsRemovingSuperior] = useState(false);
   const [isRemovingInferior, setIsRemovingInferior] = useState(false);
-  const [adminToRemove, setAdminToRemove] = useState<number | null>(null);
+  const [adminToRemove, setAdminToRemove] = useState<string | null>(null);
   const [newSuperiorAdmin, setNewSuperiorAdmin] = useState("");
   const [newInferiorAdmin, setNewInferiorAdmin] = useState("");
 
@@ -46,11 +46,7 @@ export function AdminPanel({ adminConfig }: AdminPanelProps) {
   const handleAddSuperiorAdmin = () => {
     if (!newSuperiorAdmin.trim()) return;
     
-    const adminId = parseInt(newSuperiorAdmin.trim(), 10);
-    if (isNaN(adminId)) {
-      toast.error("Admin ID must be a number");
-      return;
-    }
+    const adminId = newSuperiorAdmin.trim();
     
     if (editedConfig.superior_admins.includes(adminId)) {
       toast.error("This admin is already a superior admin");
@@ -69,11 +65,7 @@ export function AdminPanel({ adminConfig }: AdminPanelProps) {
   const handleAddInferiorAdmin = () => {
     if (!newInferiorAdmin.trim()) return;
     
-    const adminId = parseInt(newInferiorAdmin.trim(), 10);
-    if (isNaN(adminId)) {
-      toast.error("Admin ID must be a number");
-      return;
-    }
+    const adminId = newInferiorAdmin.trim();
     
     if (editedConfig.inferior_admins.includes(adminId)) {
       toast.error("This admin is already an inferior admin");
@@ -89,12 +81,12 @@ export function AdminPanel({ adminConfig }: AdminPanelProps) {
     toast.success(`Added ${adminId} as inferior admin`);
   };
 
-  const confirmRemoveSuperiorAdmin = (adminId: number) => {
+  const confirmRemoveSuperiorAdmin = (adminId: string) => {
     setAdminToRemove(adminId);
     setIsRemovingSuperior(true);
   };
 
-  const confirmRemoveInferiorAdmin = (adminId: number) => {
+  const confirmRemoveInferiorAdmin = (adminId: string) => {
     setAdminToRemove(adminId);
     setIsRemovingInferior(true);
   };

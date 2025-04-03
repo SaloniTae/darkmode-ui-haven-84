@@ -134,9 +134,6 @@ export const Header = memo(function Header() {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="font-medium text-lg flex items-center gap-2">
           <Logo size="md" service={getCurrentService()} />
-          <span className="text-gradient font-bold hidden md:inline-block">
-            Admin Dashboard
-          </span>
         </div>
 
         <div className="flex items-center space-x-1 md:space-x-4">

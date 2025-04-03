@@ -1,8 +1,8 @@
 
 // Admin Config Types
 export interface AdminConfig {
-  inferior_admins: number[];
-  superior_admins: number[];
+  inferior_admins: string[];
+  superior_admins: string[];
 }
 
 // Credential Types
