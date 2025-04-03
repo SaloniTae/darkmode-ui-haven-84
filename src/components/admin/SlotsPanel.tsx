@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Slots, Slot } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -29,8 +30,11 @@ interface SlotsPanelProps {
 }
 
 export function SlotsPanel({ slots }: SlotsPanelProps) {
+  // Initialize with empty object if slots is undefined
+  const safeSlots = slots || {};
+  
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
-  const [editedSlots, setEditedSlots] = useState<Slots>({ ...slots });
+  const [editedSlots, setEditedSlots] = useState<Slots>({ ...safeSlots });
   const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
     open: false,
     action: async () => {},
@@ -53,7 +57,7 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   };
 
   const handleCancelEdit = () => {
-    setEditedSlots({ ...slots });
+    setEditedSlots({ ...safeSlots });
     setEditingSlot(null);
   };
 
@@ -87,6 +91,8 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
 
   const toggleSlotEnabled = async (slotKey: string) => {
     const currentSlot = editedSlots[slotKey];
+    if (!currentSlot) return;
+    
     const newEnabledValue = !currentSlot.enabled;
     
     setConfirmationDialog({
@@ -217,9 +223,14 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Object.entries(slots).map(([slotKey, slot]) => {
+        {Object.entries(safeSlots).map(([slotKey, slot]) => {
+          if (!slot) return null; // Skip rendering if slot is undefined
+          
           const isEditing = editingSlot === slotKey;
           const currentSlot = editedSlots[slotKey];
+          
+          // Skip this slot if it doesn't exist in editedSlots
+          if (!currentSlot) return null;
           
           return (
             <DataCard
