@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,12 @@ export function UsersPanel({ users }: UsersPanelProps) {
   const [newUserId, setNewUserId] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [localUsers, setLocalUsers] = useState<{[key: string]: boolean}>(users || {});
+  
+  // Update local state when props change
+  useEffect(() => {
+    setLocalUsers(users || {});
+  }, [users]);
   
   const handleAddUser = async () => {
     if (!newUserId.trim()) {
@@ -39,6 +45,13 @@ export function UsersPanel({ users }: UsersPanelProps) {
     try {
       await setData(`/users/${newUserId}`, true);
       toast.success(`User ${newUserId} added successfully`);
+      
+      // Update local state
+      setLocalUsers(prev => ({
+        ...prev,
+        [newUserId]: true
+      }));
+      
       setNewUserId("");
       setIsAddingUser(false);
     } catch (error) {
@@ -58,6 +71,12 @@ export function UsersPanel({ users }: UsersPanelProps) {
     try {
       await removeData(`/users/${selectedUser}`);
       toast.success(`User ${selectedUser} removed successfully`);
+      
+      // Update local state
+      const updatedUsers = {...localUsers};
+      delete updatedUsers[selectedUser];
+      setLocalUsers(updatedUsers);
+      
       setIsConfirmingDelete(false);
       setSelectedUser(null);
     } catch (error) {
@@ -66,9 +85,25 @@ export function UsersPanel({ users }: UsersPanelProps) {
     }
   };
   
+  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await setData(`/users/${userId}`, !currentStatus);
+      toast.success(`User ${userId} ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+      
+      // Update local state
+      setLocalUsers(prev => ({
+        ...prev,
+        [userId]: !currentStatus
+      }));
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      toast.error("Failed to update user status");
+    }
+  };
+  
   // Filter users based on search term
-  const filteredUsers = Object.entries(users).filter(([userId]) =>
-    userId.includes(searchTerm)
+  const filteredUsers = Object.entries(localUsers).filter(([userId]) =>
+    userId.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   // Sort users by ID
@@ -98,7 +133,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
         </div>
       </div>
       
-      <DataCard title={`All Users (${Object.keys(users).length})`}>
+      <DataCard title={`All Users (${Object.keys(localUsers).length})`}>
         <div className="glass-morphism rounded-lg overflow-hidden">
           {sortedUsers.length > 0 ? (
             <div className="max-h-[600px] overflow-y-auto scrollbar-none">
@@ -130,13 +165,22 @@ export function UsersPanel({ users }: UsersPanelProps) {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => confirmDeleteUser(userId)}
-                        >
-                          <UserMinus className="h-4 w-4 mr-1" /> Remove
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant={isActive ? "destructive" : "outline"} 
+                            size="sm"
+                            onClick={() => handleToggleUserStatus(userId, isActive)}
+                          >
+                            {isActive ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => confirmDeleteUser(userId)}
+                          >
+                            <UserMinus className="h-4 w-4 mr-1" /> Remove
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

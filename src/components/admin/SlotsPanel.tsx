@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, Calendar, Clock, DollarSign, Check } from "lucide-react";
-import { updateData } from "@/lib/firebase";
+import { Edit, Save, Calendar, Clock, DollarSign, Check, PlusCircle } from "lucide-react";
+import { updateData, setData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -38,6 +38,16 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
     title: "",
     description: ""
   });
+  const [isAddingSlot, setIsAddingSlot] = useState(false);
+  const [newSlotKey, setNewSlotKey] = useState("");
+  const [newSlot, setNewSlot] = useState<Slot>({
+    enabled: true,
+    frequency: "daily",
+    last_update: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+    required_amount: 12,
+    slot_end: format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd HH:mm:ss"),
+    slot_start: format(new Date(), "yyyy-MM-dd HH:mm:ss")
+  });
 
   const handleEditSlot = (slotKey: string) => {
     setEditingSlot(slotKey);
@@ -66,6 +76,13 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
         ...editedSlots[slotKey],
         [field]: value
       }
+    });
+  };
+  
+  const handleNewSlotChange = (field: keyof Slot, value: any) => {
+    setNewSlot({
+      ...newSlot,
+      [field]: value
     });
   };
 
@@ -101,7 +118,47 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   const handleDateTimeSelect = (slotKey: string, field: 'slot_start' | 'slot_end' | 'last_update', date: Date | undefined) => {
     if (date) {
       const formattedDate = format(date, "yyyy-MM-dd HH:mm:ss");
-      handleInputChange(slotKey, field, formattedDate);
+      if (slotKey === 'new') {
+        setNewSlot({
+          ...newSlot,
+          [field]: formattedDate
+        });
+      } else {
+        handleInputChange(slotKey, field, formattedDate);
+      }
+    }
+  };
+  
+  const handleCreateSlot = async () => {
+    if (!newSlotKey) {
+      toast.error("Please enter a slot key");
+      return;
+    }
+    
+    try {
+      await setData(`/settings/slots/${newSlotKey}`, newSlot);
+      toast.success(`Slot ${newSlotKey} created successfully`);
+      
+      // Update local state with new slot
+      setEditedSlots({
+        ...editedSlots,
+        [newSlotKey]: newSlot
+      });
+      
+      // Reset form and close dialog
+      setNewSlotKey("");
+      setNewSlot({
+        enabled: true,
+        frequency: "daily",
+        last_update: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+        required_amount: 12,
+        slot_end: format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd HH:mm:ss"),
+        slot_start: format(new Date(), "yyyy-MM-dd HH:mm:ss")
+      });
+      setIsAddingSlot(false);
+    } catch (error) {
+      console.error("Error creating slot:", error);
+      toast.error("Failed to create slot");
     }
   };
 
@@ -138,7 +195,12 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Slots Management</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Slots Management</h2>
+        <Button onClick={() => setIsAddingSlot(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Slot
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.entries(slots).map(([slotKey, slot]) => {
@@ -668,9 +730,165 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             <AlertDialogAction 
               onClick={async () => {
                 await confirmationDialog.action();
+                setConfirmationDialog({...confirmationDialog, open: false});
               }}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Add Slot Dialog */}
+      <AlertDialog 
+        open={isAddingSlot} 
+        onOpenChange={setIsAddingSlot}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add New Slot</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a new booking slot
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-slot-key">Slot Key</Label>
+              <Input
+                id="new-slot-key"
+                placeholder="e.g., slot_4"
+                value={newSlotKey}
+                onChange={(e) => setNewSlotKey(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new-slot-enabled"
+                checked={newSlot.enabled}
+                onCheckedChange={(checked) => handleNewSlotChange('enabled', checked === true)}
+              />
+              <Label htmlFor="new-slot-enabled" className="text-sm font-medium">
+                Enabled
+              </Label>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-slot-frequency">Frequency</Label>
+              <Select
+                value={newSlot.frequency}
+                onValueChange={(value) => handleNewSlotChange('frequency', value)}
+              >
+                <SelectTrigger id="new-slot-frequency">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent className="bg-background">
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="3day">3 Days</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-slot-amount">Required Amount</Label>
+              <Input
+                id="new-slot-amount"
+                type="number"
+                value={newSlot.required_amount}
+                onChange={(e) => handleNewSlotChange('required_amount', parseInt(e.target.value))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-slot-start">Slot Start</Label>
+              <div className="flex">
+                <Input
+                  id="new-slot-start"
+                  value={newSlot.slot_start}
+                  onChange={(e) => handleNewSlotChange('slot_start', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="ml-2">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-3">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseSlotDateTime(newSlot.slot_start)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Preserve time when changing date
+                            const currentDateTime = parseSlotDateTime(newSlot.slot_start);
+                            const newDate = new Date(date);
+                            newDate.setHours(
+                              currentDateTime.getHours(),
+                              currentDateTime.getMinutes()
+                            );
+                            handleDateTimeSelect('new', 'slot_start', newDate);
+                          }
+                        }}
+                        initialFocus
+                        className="bg-background"
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-slot-end">Slot End</Label>
+              <div className="flex">
+                <Input
+                  id="new-slot-end"
+                  value={newSlot.slot_end}
+                  onChange={(e) => handleNewSlotChange('slot_end', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="ml-2">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-3">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseSlotDateTime(newSlot.slot_end)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Preserve time when changing date
+                            const currentDateTime = parseSlotDateTime(newSlot.slot_end);
+                            const newDate = new Date(date);
+                            newDate.setHours(
+                              currentDateTime.getHours(),
+                              currentDateTime.getMinutes()
+                            );
+                            handleDateTimeSelect('new', 'slot_end', newDate);
+                          }
+                        }}
+                        initialFocus
+                        className="bg-background"
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateSlot}>
+              Create Slot
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -66,7 +66,6 @@ export function ThemeProvider({
     let effectiveTheme: "dark" | "light";
     
     if (theme === "system") {
-      // Force dark mode if system preference is dark, light mode otherwise
       effectiveTheme = getSystemTheme();
       console.log("System theme detected:", effectiveTheme);
     } else {
@@ -80,7 +79,7 @@ export function ThemeProvider({
     // Save theme choice to localStorage
     setStorageItem("theme", theme);
     
-    // For system theme, listen to system preference changes and force dark/light mode
+    // For system theme, listen to system preference changes
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       
