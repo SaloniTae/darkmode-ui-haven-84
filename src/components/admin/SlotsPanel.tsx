@@ -1,18 +1,19 @@
 
-import { useState, useEffect } from "react";
-import { Slot, Slots } from "@/types/database";
+import { useState } from "react";
+import { Slots, Slot } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { updateData, setData, removeData } from "@/lib/firebase";
-import { format, parse, addDays } from "date-fns";
-import { CalendarIcon, Clock, DollarSign, Edit, Plus, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Edit, Save, Calendar, Clock, DollarSign, Check, PlusCircle } from "lucide-react";
+import { updateData, setData } from "@/lib/firebase";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, parse } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -23,81 +24,51 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 interface SlotsPanelProps {
   slots: Slots;
 }
 
 export function SlotsPanel({ slots }: SlotsPanelProps) {
-  const [localSlots, setLocalSlots] = useState<Slots>({ ...slots });
-  const [editedSlots, setEditedSlots] = useState<Slots>({ ...slots });
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [editedSlots, setEditedSlots] = useState<Slots>({ ...slots });
+  const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
+    open: false,
+    action: async () => {},
+    title: "",
+    description: ""
+  });
   const [isAddingSlot, setIsAddingSlot] = useState(false);
   const [newSlotKey, setNewSlotKey] = useState("");
   const [newSlot, setNewSlot] = useState<Slot>({
     enabled: true,
     frequency: "daily",
-    last_update: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+    last_update: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
     required_amount: 12,
-    slot_start: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-    slot_end: format(addDays(new Date(), 1), 'yyyy-MM-dd HH:mm:ss')
+    slot_end: format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd HH:mm:ss"),
+    slot_start: format(new Date(), "yyyy-MM-dd HH:mm:ss")
   });
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; slotKey: string}>({
-    open: false,
-    slotKey: ""
-  });
-  
-  // Update local state when props change
-  useEffect(() => {
-    setLocalSlots({ ...slots });
-    setEditedSlots({ ...slots });
-  }, [slots]);
-  
+
   const handleEditSlot = (slotKey: string) => {
     setEditingSlot(slotKey);
-    
-    try {
-      const slot = editedSlots[slotKey];
-      setStartDate(parse(slot.slot_start, 'yyyy-MM-dd HH:mm:ss', new Date()));
-      setEndDate(parse(slot.slot_end, 'yyyy-MM-dd HH:mm:ss', new Date()));
-    } catch (e) {
-      console.error("Error parsing dates:", e);
-      setStartDate(new Date());
-      setEndDate(addDays(new Date(), 1));
-    }
   };
-  
+
   const handleCancelEdit = () => {
-    setEditedSlots({ ...localSlots });
+    setEditedSlots({ ...slots });
     setEditingSlot(null);
-    setStartDate(undefined);
-    setEndDate(undefined);
   };
-  
+
   const handleSaveSlot = async (slotKey: string) => {
     try {
       await updateData(`/settings/slots/${slotKey}`, editedSlots[slotKey]);
-      toast.success(`${slotKey} updated successfully`);
-      
-      // Update local state
-      setLocalSlots(prev => ({
-        ...prev,
-        [slotKey]: editedSlots[slotKey]
-      }));
-      
+      toast.success(`Slot ${slotKey} updated successfully`);
       setEditingSlot(null);
-      setStartDate(undefined);
-      setEndDate(undefined);
     } catch (error) {
       console.error(`Error updating ${slotKey}:`, error);
       toast.error(`Failed to update ${slotKey}`);
     }
   };
-  
+
   const handleInputChange = (slotKey: string, field: keyof Slot, value: any) => {
     setEditedSlots({
       ...editedSlots,
@@ -108,105 +79,81 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
     });
   };
   
-  const handleToggleSlot = async (slotKey: string, enabled: boolean) => {
-    try {
-      await updateData(`/settings/slots/${slotKey}/enabled`, enabled);
-      toast.success(`${slotKey} ${enabled ? 'enabled' : 'disabled'} successfully`);
-      
-      // Update both local states
-      const updatedSlot = {
-        ...localSlots[slotKey],
-        enabled
-      };
-      
-      setLocalSlots(prev => ({
-        ...prev,
-        [slotKey]: updatedSlot
-      }));
-      
-      setEditedSlots(prev => ({
-        ...prev,
-        [slotKey]: updatedSlot
-      }));
-    } catch (error) {
-      console.error(`Error updating ${slotKey}:`, error);
-      toast.error(`Failed to update ${slotKey}`);
-    }
-  };
-  
-  const confirmDeleteSlot = (slotKey: string) => {
-    setDeleteConfirmation({
-      open: true,
-      slotKey
-    });
-  };
-  
-  const handleDeleteSlot = async () => {
-    const { slotKey } = deleteConfirmation;
-    if (!slotKey) return;
-    
-    try {
-      await removeData(`/settings/slots/${slotKey}`);
-      toast.success(`${slotKey} deleted successfully`);
-      
-      // Update local state
-      const updatedSlots = { ...localSlots };
-      delete updatedSlots[slotKey];
-      setLocalSlots(updatedSlots);
-      setEditedSlots(updatedSlots);
-      
-      setDeleteConfirmation({ open: false, slotKey: "" });
-    } catch (error) {
-      console.error(`Error deleting ${slotKey}:`, error);
-      toast.error(`Failed to delete ${slotKey}`);
-    }
-  };
-  
-  const formatDateTime = (dateString: string): string => {
-    try {
-      return format(parse(dateString, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
-    } catch (e) {
-      return dateString;
-    }
-  };
-  
   const handleNewSlotChange = (field: keyof Slot, value: any) => {
     setNewSlot({
       ...newSlot,
       [field]: value
     });
   };
+
+  const toggleSlotEnabled = async (slotKey: string) => {
+    const currentSlot = editedSlots[slotKey];
+    const newEnabledValue = !currentSlot.enabled;
+    
+    setConfirmationDialog({
+      open: true,
+      action: async () => {
+        try {
+          await updateData(`/settings/slots/${slotKey}/enabled`, newEnabledValue);
+          
+          setEditedSlots({
+            ...editedSlots,
+            [slotKey]: {
+              ...currentSlot,
+              enabled: newEnabledValue
+            }
+          });
+          
+          toast.success(`${slotKey} ${newEnabledValue ? 'enabled' : 'disabled'} successfully`);
+        } catch (error) {
+          console.error(`Error toggling enabled state for ${slotKey}:`, error);
+          toast.error(`Failed to ${newEnabledValue ? 'enable' : 'disable'} ${slotKey}`);
+        }
+      },
+      title: `${newEnabledValue ? 'Enable' : 'Disable'} ${slotKey}`,
+      description: `Are you sure you want to ${newEnabledValue ? 'enable' : 'disable'} ${slotKey}?`
+    });
+  };
+
+  const handleDateTimeSelect = (slotKey: string, field: 'slot_start' | 'slot_end' | 'last_update', date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM-dd HH:mm:ss");
+      if (slotKey === 'new') {
+        setNewSlot({
+          ...newSlot,
+          [field]: formattedDate
+        });
+      } else {
+        handleInputChange(slotKey, field, formattedDate);
+      }
+    }
+  };
   
   const handleCreateSlot = async () => {
     if (!newSlotKey) {
-      toast.error("Please provide a slot key");
+      toast.error("Please enter a slot key");
       return;
     }
     
     try {
       await setData(`/settings/slots/${newSlotKey}`, newSlot);
-      toast.success(`${newSlotKey} created successfully`);
+      toast.success(`Slot ${newSlotKey} created successfully`);
       
-      // Update local state immediately
-      setLocalSlots(prev => ({
-        ...prev,
+      // Update local state with new slot
+      setEditedSlots({
+        ...editedSlots,
         [newSlotKey]: newSlot
-      }));
-      
-      setEditedSlots(prev => ({
-        ...prev,
-        [newSlotKey]: newSlot
-      }));
+      });
       
       // Reset form and close dialog
       setNewSlotKey("");
       setNewSlot({
         enabled: true,
         frequency: "daily",
-        last_update: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+        last_update: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
         required_amount: 12,
-        slot_start: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-        slot_end: format(addDays(new Date(), 1), 'yyyy-MM-dd HH:mm:ss')
+        slot_end: format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd HH:mm:ss"),
+        slot_start: format(new Date(), "yyyy-MM-dd HH:mm:ss")
       });
       setIsAddingSlot(false);
     } catch (error) {
@@ -214,270 +161,602 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
       toast.error("Failed to create slot");
     }
   };
-  
-  const handleDateChange = (slotKey: string, type: 'start' | 'end', date: Date | undefined) => {
-    if (!date) return;
-    
-    if (type === 'start') {
-      setStartDate(date);
-      // Maintain the time part from the existing start time
-      try {
-        const existingDate = parse(editedSlots[slotKey].slot_start, 'yyyy-MM-dd HH:mm:ss', new Date());
-        const hours = existingDate.getHours();
-        const minutes = existingDate.getMinutes();
-        const seconds = existingDate.getSeconds();
-        
-        date.setHours(hours, minutes, seconds);
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        
-        handleInputChange(slotKey, 'slot_start', formattedDate);
-      } catch (e) {
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        handleInputChange(slotKey, 'slot_start', formattedDate);
-      }
-    } else {
-      setEndDate(date);
-      // Maintain the time part from the existing end time
-      try {
-        const existingDate = parse(editedSlots[slotKey].slot_end, 'yyyy-MM-dd HH:mm:ss', new Date());
-        const hours = existingDate.getHours();
-        const minutes = existingDate.getMinutes();
-        const seconds = existingDate.getSeconds();
-        
-        date.setHours(hours, minutes, seconds);
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        
-        handleInputChange(slotKey, 'slot_end', formattedDate);
-      } catch (e) {
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        handleInputChange(slotKey, 'slot_end', formattedDate);
-      }
-    }
-  };
-  
-  // Format time period
-  const formatTimePeriod = (startDate: string, endDate: string): string => {
+
+  const parseSlotDateTime = (dateTimeStr: string): Date => {
+    // Handle various date formats
     try {
-      const start = format(parse(startDate, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
-      const end = format(parse(endDate, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
-      return `${start} - ${end}`;
-    } catch (e) {
-      return `${startDate} - ${endDate}`;
+      return parse(dateTimeStr, 'yyyy-MM-dd HH:mm:ss', new Date());
+    } catch (error) {
+      return new Date();
     }
   };
+
+  const formatDateTimeForDisplay = (dateTimeStr: string): string => {
+    try {
+      const date = parse(dateTimeStr, 'yyyy-MM-dd HH:mm:ss', new Date());
+      return format(date, 'MMM dd, yyyy hh:mm a'); // 12-hour format with AM/PM
+    } catch (error) {
+      return dateTimeStr;
+    }
+  };
+
+  const getTimePickerValues = () => {
+    // Generate hours in 12-hour format (1-12)
+    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    
+    // Generate all minutes (00-59)
+    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+    
+    const periods = ['AM', 'PM'];
+    return { hours, minutes, periods };
+  };
   
+  const { hours, minutes, periods } = getTimePickerValues();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Slots Management</h2>
         <Button onClick={() => setIsAddingSlot(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Add Slot
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Slot
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Object.entries(localSlots).map(([slotKey, slot]) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Object.entries(slots).map(([slotKey, slot]) => {
           const isEditing = editingSlot === slotKey;
-          const currentSlot = isEditing ? editedSlots[slotKey] : slot;
-          
-          if (isEditing) {
-            return (
-              <Card key={slotKey} className="overflow-hidden">
-                <CardContent className="p-6 space-y-4">
-                  <h3 className="text-2xl font-semibold">{slotKey}</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={currentSlot.enabled}
-                        onCheckedChange={(checked) => handleInputChange(slotKey, 'enabled', checked)}
-                      />
-                      <Label>{currentSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Frequency</Label>
-                      <Select
-                        value={currentSlot.frequency}
-                        onValueChange={(value) => handleInputChange(slotKey, 'frequency', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="3day">3 Days</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Required Amount</Label>
-                      <Input
-                        type="number"
-                        value={currentSlot.required_amount}
-                        onChange={(e) => handleInputChange(slotKey, 'required_amount', parseInt(e.target.value))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Start Date</Label>
-                      <div className="flex">
-                        <Input
-                          value={currentSlot.slot_start}
-                          onChange={(e) => handleInputChange(slotKey, 'slot_start', e.target.value)}
-                          className="flex-1"
-                        />
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="ml-2">
-                              <CalendarIcon className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={startDate}
-                              onSelect={(date) => handleDateChange(slotKey, 'start', date)}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>End Date</Label>
-                      <div className="flex">
-                        <Input
-                          value={currentSlot.slot_end}
-                          onChange={(e) => handleInputChange(slotKey, 'slot_end', e.target.value)}
-                          className="flex-1"
-                        />
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="ml-2">
-                              <CalendarIcon className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={endDate}
-                              onSelect={(date) => handleDateChange(slotKey, 'end', date)}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
-                    <Button onClick={() => handleSaveSlot(slotKey)}>Save</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          }
+          const currentSlot = editedSlots[slotKey];
           
           return (
-            <Card key={slotKey} className="overflow-hidden bg-card">
-              <CardContent className="p-6">
-                <h3 className="text-2xl font-semibold mb-4">{slotKey}</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${currentSlot.enabled ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-lg">{currentSlot.enabled ? 'Enabled' : 'Disabled'}</span>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-3">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Frequency</p>
-                        <p className="text-lg">{currentSlot.frequency}</p>
+            <DataCard
+              key={slotKey}
+              title={slotKey}
+              className={currentSlot.enabled ? "border-green-500/30" : "border-red-500/30"}
+            >
+              <div className="space-y-4">
+                {isEditing ? (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${slotKey}-enabled`}
+                          checked={currentSlot.enabled}
+                          onCheckedChange={(checked) => handleInputChange(slotKey, 'enabled', checked === true)}
+                        />
+                        <Label htmlFor={`${slotKey}-enabled`} className="text-sm font-medium">
+                          Enabled
+                        </Label>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-frequency`}>Frequency</Label>
+                        <Select
+                          value={currentSlot.frequency}
+                          onValueChange={(value) => handleInputChange(slotKey, 'frequency', value)}
+                        >
+                          <SelectTrigger id={`${slotKey}-frequency`}>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="3day">3 Days</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-amount`}>Required Amount</Label>
+                        <Input
+                          id={`${slotKey}-amount`}
+                          type="number"
+                          value={currentSlot.required_amount}
+                          onChange={(e) => handleInputChange(slotKey, 'required_amount', parseInt(e.target.value))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-start`}>Slot Start</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`${slotKey}-start`}
+                            value={currentSlot.slot_start}
+                            onChange={(e) => handleInputChange(slotKey, 'slot_start', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <div className="p-3">
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={parseSlotDateTime(currentSlot.slot_start)}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      // Preserve time when changing date
+                                      const currentDateTime = parseSlotDateTime(currentSlot.slot_start);
+                                      const newDate = new Date(date);
+                                      newDate.setHours(
+                                        currentDateTime.getHours(),
+                                        currentDateTime.getMinutes()
+                                      );
+                                      handleDateTimeSelect(slotKey, 'slot_start', newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                                <div className="mt-4 p-2 border-t pt-4">
+                                  <p className="text-sm font-medium mb-2">Time</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <span className="flex items-center">:</span>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_start), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_start);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'slot_start', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  <Button 
+                                    className="w-full mt-3" 
+                                    onClick={() => {
+                                      toast.success("Time confirmed");
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4 mr-2" /> Confirm Time
+                                  </Button>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-end`}>Slot End</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`${slotKey}-end`}
+                            value={currentSlot.slot_end}
+                            onChange={(e) => handleInputChange(slotKey, 'slot_end', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <div className="p-3">
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={parseSlotDateTime(currentSlot.slot_end)}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      // Preserve time when changing date
+                                      const currentDateTime = parseSlotDateTime(currentSlot.slot_end);
+                                      const newDate = new Date(date);
+                                      newDate.setHours(
+                                        currentDateTime.getHours(),
+                                        currentDateTime.getMinutes()
+                                      );
+                                      handleDateTimeSelect(slotKey, 'slot_end', newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                                <div className="mt-4 p-2 border-t pt-4">
+                                  <p className="text-sm font-medium mb-2">Time</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <span className="flex items-center">:</span>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.slot_end), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.slot_end);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'slot_end', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  <Button 
+                                    className="w-full mt-3" 
+                                    onClick={() => {
+                                      toast.success("Time confirmed");
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4 mr-2" /> Confirm Time
+                                  </Button>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-last-update`}>Last Update</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`${slotKey}-last-update`}
+                            value={currentSlot.last_update}
+                            onChange={(e) => handleInputChange(slotKey, 'last_update', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <div className="p-3">
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={parseSlotDateTime(currentSlot.last_update)}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      // Preserve time when changing date
+                                      const currentDateTime = parseSlotDateTime(currentSlot.last_update);
+                                      const newDate = new Date(date);
+                                      newDate.setHours(
+                                        currentDateTime.getHours(),
+                                        currentDateTime.getMinutes()
+                                      );
+                                      handleDateTimeSelect(slotKey, 'last_update', newDate);
+                                    }
+                                  }}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                                <div className="mt-4 p-2 border-t pt-4">
+                                  <p className="text-sm font-medium mb-2">Time</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'h')}
+                                        onValueChange={(hour) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          const isPM = date.getHours() >= 12;
+                                          const hourValue = parseInt(hour);
+                                          date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Hour" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {hours.map((hour) => (
+                                              <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <span className="flex items-center">:</span>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'mm')}
+                                        onValueChange={(minute) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          date.setMinutes(parseInt(minute));
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="Min" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <ScrollArea className="h-52">
+                                            {minutes.map((minute) => (
+                                              <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                            ))}
+                                          </ScrollArea>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="relative w-20">
+                                      <Select 
+                                        value={format(parseSlotDateTime(currentSlot.last_update), 'a')}
+                                        onValueChange={(period) => {
+                                          const date = parseSlotDateTime(currentSlot.last_update);
+                                          const currentHour = date.getHours();
+                                          const isPM = period === 'PM';
+                                          
+                                          if (isPM && currentHour < 12) {
+                                            date.setHours(currentHour + 12);
+                                          } else if (!isPM && currentHour >= 12) {
+                                            date.setHours(currentHour - 12);
+                                          }
+                                          
+                                          handleDateTimeSelect(slotKey, 'last_update', date);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-20">
+                                          <SelectValue placeholder="AM/PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {periods.map((period) => (
+                                            <SelectItem key={period} value={period}>{period}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  <Button 
+                                    className="w-full mt-3" 
+                                    onClick={() => {
+                                      toast.success("Time confirmed");
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4 mr-2" /> Confirm Time
+                                  </Button>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-3">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Required Amount</p>
-                        <p className="text-lg">₹{currentSlot.required_amount}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-3">
-                      <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Time Period</p>
-                        <p className="text-sm">{formatTimePeriod(currentSlot.slot_start, currentSlot.slot_end)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="pt-2">
-                    <p className="text-sm text-muted-foreground">Last Updated</p>
-                    <p>{formatDateTime(currentSlot.last_update)}</p>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button 
-                      variant="destructive"
-                      onClick={() => confirmDeleteSlot(slotKey)}
-                      className="px-4"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete
-                    </Button>
                     
-                    <Button 
-                      variant={currentSlot.enabled ? "destructive" : "success"}
-                      onClick={() => handleToggleSlot(slotKey, !currentSlot.enabled)}
-                      className="px-6"
-                    >
-                      {currentSlot.enabled ? "Disable" : "Enable"}
-                    </Button>
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                      <Button onClick={() => handleSaveSlot(slotKey)}>
+                        <Save className="mr-2 h-4 w-4" /> Save
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${currentSlot.enabled ? "bg-green-500" : "bg-red-500"}`}></div>
+                        <span className="text-sm font-medium">{currentSlot.enabled ? "Enabled" : "Disabled"}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Frequency</p>
+                            <p className="font-medium text-base">{currentSlot.frequency}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Required Amount</p>
+                            <p className="font-medium text-base">₹{currentSlot.required_amount}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start">
+                          <Calendar className="h-4 w-4 mr-2 mt-1 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Time Period</p>
+                            <p className="font-medium text-sm">
+                              {formatDateTimeForDisplay(currentSlot.slot_start)} - 
+                              {formatDateTimeForDisplay(currentSlot.slot_end)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-2 pt-2 border-t border-gray-700/30">
+                          <p className="text-xs text-muted-foreground">Last Updated</p>
+                          <p className="font-medium text-xs">{formatDateTimeForDisplay(currentSlot.last_update)}</p>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <Button 
-                      variant="outline"
-                      onClick={() => handleEditSlot(slotKey)}
-                      className="px-4"
-                    >
-                      <Edit className="h-4 w-4 mr-2" /> Edit
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <Button 
+                        variant={currentSlot.enabled ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={() => toggleSlotEnabled(slotKey)}
+                      >
+                        {currentSlot.enabled ? "Disable" : "Enable"}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditSlot(slotKey)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </DataCard>
           );
         })}
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog 
+        open={confirmationDialog.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmationDialog({...confirmationDialog, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmationDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                await confirmationDialog.action();
+                setConfirmationDialog({...confirmationDialog, open: false});
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {/* Add Slot Dialog */}
-      <AlertDialog open={isAddingSlot} onOpenChange={setIsAddingSlot}>
-        <AlertDialogContent>
+      <AlertDialog 
+        open={isAddingSlot} 
+        onOpenChange={setIsAddingSlot}
+      >
+        <AlertDialogContent className="bg-background">
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Slot</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a new slot for booking
+              Create a new booking slot
             </AlertDialogDescription>
           </AlertDialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Slot Key</Label>
+              <Label htmlFor="new-slot-key">Slot Key</Label>
               <Input
+                id="new-slot-key"
                 placeholder="e.g., slot_4"
                 value={newSlotKey}
                 onChange={(e) => setNewSlotKey(e.target.value)}
@@ -485,23 +764,26 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             </div>
             
             <div className="flex items-center space-x-2">
-              <Switch
+              <Checkbox
+                id="new-slot-enabled"
                 checked={newSlot.enabled}
-                onCheckedChange={(checked) => handleNewSlotChange('enabled', checked)}
+                onCheckedChange={(checked) => handleNewSlotChange('enabled', checked === true)}
               />
-              <Label>{newSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
+              <Label htmlFor="new-slot-enabled" className="text-sm font-medium">
+                Enabled
+              </Label>
             </div>
             
             <div className="space-y-2">
-              <Label>Frequency</Label>
+              <Label htmlFor="new-slot-frequency">Frequency</Label>
               <Select
                 value={newSlot.frequency}
                 onValueChange={(value) => handleNewSlotChange('frequency', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="new-slot-frequency">
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background">
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="3day">3 Days</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
@@ -511,8 +793,9 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             </div>
             
             <div className="space-y-2">
-              <Label>Required Amount</Label>
+              <Label htmlFor="new-slot-amount">Required Amount</Label>
               <Input
+                id="new-slot-amount"
                 type="number"
                 value={newSlot.required_amount}
                 onChange={(e) => handleNewSlotChange('required_amount', parseInt(e.target.value))}
@@ -520,19 +803,85 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             </div>
             
             <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                value={newSlot.slot_start}
-                onChange={(e) => handleNewSlotChange('slot_start', e.target.value)}
-              />
+              <Label htmlFor="new-slot-start">Slot Start</Label>
+              <div className="flex">
+                <Input
+                  id="new-slot-start"
+                  value={newSlot.slot_start}
+                  onChange={(e) => handleNewSlotChange('slot_start', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="ml-2">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-3">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseSlotDateTime(newSlot.slot_start)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Preserve time when changing date
+                            const currentDateTime = parseSlotDateTime(newSlot.slot_start);
+                            const newDate = new Date(date);
+                            newDate.setHours(
+                              currentDateTime.getHours(),
+                              currentDateTime.getMinutes()
+                            );
+                            handleDateTimeSelect('new', 'slot_start', newDate);
+                          }
+                        }}
+                        initialFocus
+                        className="bg-background"
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             
             <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                value={newSlot.slot_end}
-                onChange={(e) => handleNewSlotChange('slot_end', e.target.value)}
-              />
+              <Label htmlFor="new-slot-end">Slot End</Label>
+              <div className="flex">
+                <Input
+                  id="new-slot-end"
+                  value={newSlot.slot_end}
+                  onChange={(e) => handleNewSlotChange('slot_end', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="ml-2">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-3">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseSlotDateTime(newSlot.slot_end)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Preserve time when changing date
+                            const currentDateTime = parseSlotDateTime(newSlot.slot_end);
+                            const newDate = new Date(date);
+                            newDate.setHours(
+                              currentDateTime.getHours(),
+                              currentDateTime.getMinutes()
+                            );
+                            handleDateTimeSelect('new', 'slot_end', newDate);
+                          }
+                        }}
+                        initialFocus
+                        className="bg-background"
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
           
@@ -540,34 +889,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleCreateSlot}>
               Create Slot
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={deleteConfirmation.open} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteConfirmation({open: false, slotKey: ""});
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Slot</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {deleteConfirmation.slotKey}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteSlot}
-              className="bg-destructive text-destructive-foreground"
-            >
-              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

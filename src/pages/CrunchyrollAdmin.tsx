@@ -11,7 +11,7 @@ import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
-import { fetchData, removeData } from "@/lib/firebase";
+import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -42,43 +42,6 @@ export default function CrunchyrollAdmin() {
       loadData();
     }
   }, [isAuthenticated]);
-
-  // Function to delete a transaction
-  const handleDeleteTransaction = async (transactionId: string) => {
-    if (!dbData) return;
-    
-    try {
-      // Check if it's a special transaction group
-      if (transactionId === 'FTRIAL-ID' || transactionId === 'REF-ID') {
-        // For special groups, prompt the user
-        if (!window.confirm(`This will delete ALL ${transactionId} transactions. Continue?`)) {
-          return;
-        }
-        await removeData(`/transactions/${transactionId}`);
-      } else {
-        // For regular transactions
-        await removeData(`/transactions/${transactionId}`);
-      }
-      
-      // Update local state
-      setDbData(prevData => {
-        if (!prevData) return null;
-        
-        const updatedTransactions = { ...prevData.transactions };
-        delete updatedTransactions[transactionId];
-        
-        return {
-          ...prevData,
-          transactions: updatedTransactions
-        };
-      });
-      
-      toast.success(`Transaction ${transactionId} deleted successfully`);
-    } catch (error) {
-      console.error(`Error deleting transaction ${transactionId}:`, error);
-      toast.error(`Failed to delete transaction ${transactionId}`);
-    }
-  };
 
   // If not authenticated, don't show anything as the ProtectedRoute component
   // will handle the redirect to login page
@@ -187,11 +150,7 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-0">
-            <TransactionsPanel 
-              transactions={dbData?.transactions || {}} 
-              usedOrderIds={dbData?.used_orderids || {}}
-              onDeleteTransaction={handleDeleteTransaction}
-            />
+            <TransactionsPanel transactions={dbData?.transactions || {}} usedOrderIds={dbData?.used_orderids || {}} />
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">

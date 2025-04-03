@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Referral, ReferralSettings } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Save, Plus, Award, User, Users, Trash2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { updateData, removeData } from "@/lib/firebase";
+import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -39,28 +39,18 @@ interface ReferralsPanelProps {
 export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }: ReferralsPanelProps) {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [editedSettings, setEditedSettings] = useState<ReferralSettings>({ ...referralSettings });
-  const [localSettings, setLocalSettings] = useState<ReferralSettings>({ ...referralSettings });
   const [searchTerm, setSearchTerm] = useState("");
   const [editingReferral, setEditingReferral] = useState<string | null>(null);
   const [editedReferral, setEditedReferral] = useState<Referral | null>(null);
-  const [localReferrals, setLocalReferrals] = useState<{ [key: string]: Referral }>({ ...referrals });
   const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; userId: string}>({
     open: false,
     userId: ""
   });
-  
-  // Update local state when props change
-  useEffect(() => {
-    setLocalReferrals({ ...referrals });
-    setLocalSettings({ ...referralSettings });
-    setEditedSettings({ ...referralSettings });
-  }, [referrals, referralSettings]);
 
   const handleSaveSettings = async () => {
     try {
       await updateData("/referral_settings", editedSettings);
       toast.success("Referral settings updated successfully");
-      setLocalSettings(editedSettings);
       setIsEditingSettings(false);
     } catch (error) {
       console.error("Error updating referral settings:", error);
@@ -95,13 +85,6 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
     try {
       await updateData(`/referrals/${editingReferral}`, editedReferral);
       toast.success("Referral updated successfully");
-      
-      // Update local state
-      setLocalReferrals(prev => ({
-        ...prev,
-        [editingReferral]: editedReferral
-      }));
-      
       setEditingReferral(null);
       setEditedReferral(null);
     } catch (error) {
@@ -112,14 +95,8 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
 
   const handleDeleteReferral = async (userId: string) => {
     try {
-      await removeData(`/referrals/${userId}`);
+      await updateData(`/referrals/${userId}`, null);
       toast.success("Referral deleted successfully");
-      
-      // Update local state
-      const updatedReferrals = { ...localReferrals };
-      delete updatedReferrals[userId];
-      setLocalReferrals(updatedReferrals);
-      
       setDeleteConfirmation({open: false, userId: ""});
     } catch (error) {
       console.error("Error deleting referral:", error);
@@ -128,7 +105,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
   };
 
   // Filter referrals based on search term
-  const filteredReferrals = Object.entries(localReferrals).filter(([userId, referral]) =>
+  const filteredReferrals = Object.entries(referrals).filter(([userId, referral]) =>
     userId.toLowerCase().includes(searchTerm.toLowerCase()) || 
     referral.referral_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -193,7 +170,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                 
                 <div className="flex justify-end space-x-2 pt-2">
                   <Button variant="outline" onClick={() => {
-                    setEditedSettings({ ...localSettings });
+                    setEditedSettings({ ...referralSettings });
                     setIsEditingSettings(false);
                   }}>
                     Cancel
@@ -208,28 +185,28 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${localSettings.free_trial_enabled ? "bg-green-500" : "bg-red-500"}`}></div>
+                      <div className={`w-3 h-3 rounded-full ${editedSettings.free_trial_enabled ? "bg-green-500" : "bg-red-500"}`}></div>
                       <span className="text-sm">Free Trial</span>
                     </div>
-                    <span className="text-sm font-medium">{localSettings.free_trial_enabled ? "Enabled" : "Disabled"}</span>
+                    <span className="text-sm font-medium">{editedSettings.free_trial_enabled ? "Enabled" : "Disabled"}</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${localSettings.buy_with_points_enabled ? "bg-green-500" : "bg-red-500"}`}></div>
+                      <div className={`w-3 h-3 rounded-full ${editedSettings.buy_with_points_enabled ? "bg-green-500" : "bg-red-500"}`}></div>
                       <span className="text-sm">Buy With Points</span>
                     </div>
-                    <span className="text-sm font-medium">{localSettings.buy_with_points_enabled ? "Enabled" : "Disabled"}</span>
+                    <span className="text-sm font-medium">{editedSettings.buy_with_points_enabled ? "Enabled" : "Disabled"}</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Points Per Referral</span>
-                    <span className="text-sm font-medium">{localSettings.points_per_referral}</span>
+                    <span className="text-sm font-medium">{editedSettings.points_per_referral}</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Required Points</span>
-                    <span className="text-sm font-medium">{localSettings.required_point}</span>
+                    <span className="text-sm font-medium">{editedSettings.required_point}</span>
                   </div>
                 </div>
                 

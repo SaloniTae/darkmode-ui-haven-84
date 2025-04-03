@@ -46,7 +46,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
       await setData(`/users/${newUserId}`, true);
       toast.success(`User ${newUserId} added successfully`);
       
-      // Update local state immediately
+      // Update local state
       setLocalUsers(prev => ({
         ...prev,
         [newUserId]: true
@@ -72,7 +72,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
       await removeData(`/users/${selectedUser}`);
       toast.success(`User ${selectedUser} removed successfully`);
       
-      // Update local state immediately
+      // Update local state
       const updatedUsers = {...localUsers};
       delete updatedUsers[selectedUser];
       setLocalUsers(updatedUsers);
@@ -90,7 +90,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
       await setData(`/users/${userId}`, !currentStatus);
       toast.success(`User ${userId} ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
       
-      // Update local state immediately
+      // Update local state
       setLocalUsers(prev => ({
         ...prev,
         [userId]: !currentStatus
