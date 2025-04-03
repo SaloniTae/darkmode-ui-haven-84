@@ -11,7 +11,7 @@ import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
-import { fetchData, subscribeToData } from "@/lib/firebase";
+import { fetchData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -21,7 +21,6 @@ export default function CrunchyrollAdmin() {
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
-  const unsubscribeRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     // Only fetch data if authenticated and not already fetched
@@ -29,17 +28,10 @@ export default function CrunchyrollAdmin() {
       const loadData = async () => {
         try {
           setLoading(true);
-          const initialData = await fetchData("/");
-          setDbData(initialData);
+          const data = await fetchData("/");
+          setDbData(data);
           toast.success("Crunchyroll database loaded successfully");
           dataFetchedRef.current = true;
-          
-          // Set up real-time subscription
-          unsubscribeRef.current = subscribeToData("/", (data) => {
-            if (data) {
-              setDbData(data);
-            }
-          });
         } catch (error) {
           console.error("Error loading Crunchyroll database:", error);
           toast.error("Failed to load Crunchyroll database");
@@ -49,13 +41,6 @@ export default function CrunchyrollAdmin() {
       };
       loadData();
     }
-    
-    return () => {
-      // Clean up subscription on component unmount
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
   }, [isAuthenticated]);
 
   // If not authenticated, don't show anything as the ProtectedRoute component
@@ -143,13 +128,7 @@ export default function CrunchyrollAdmin() {
                 locked: 0,
                 max_usage: 0,
                 usage_count: 0
-              },
-              ...(dbData?.cred5 ? { cred5: dbData.cred5 } : {}),
-              ...(dbData?.cred6 ? { cred6: dbData.cred6 } : {}),
-              ...(dbData?.cred7 ? { cred7: dbData.cred7 } : {}),
-              ...(dbData?.cred8 ? { cred8: dbData.cred8 } : {}),
-              ...(dbData?.cred9 ? { cred9: dbData.cred9 } : {}),
-              ...(dbData?.cred10 ? { cred10: dbData.cred10 } : {})
+              }
             }} slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
