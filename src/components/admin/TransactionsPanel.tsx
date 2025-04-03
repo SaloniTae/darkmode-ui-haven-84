@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -9,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { updateData, deleteData } from "@/lib/firebase";
+import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -30,12 +29,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 interface TransactionsPanelProps {
   transactions: Transactions;
   usedOrderIds: { [key: string]: boolean };
-  refreshData: () => Promise<void>;
 }
 
 interface ProcessedTransaction {
@@ -48,7 +46,7 @@ interface ProcessedTransaction {
   originalData: any;
 }
 
-export function TransactionsPanel({ transactions, usedOrderIds, refreshData }: TransactionsPanelProps) {
+export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
@@ -142,7 +140,6 @@ export function TransactionsPanel({ transactions, usedOrderIds, refreshData }: T
       toast.success("Transaction updated successfully");
       setEditingTransaction(null);
       setEditedData(null);
-      await refreshData();
     } catch (error) {
       console.error("Error updating transaction:", error);
       toast.error("Failed to update transaction");
@@ -155,10 +152,9 @@ export function TransactionsPanel({ transactions, usedOrderIds, refreshData }: T
       : `/${type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${id}`;
     
     try {
-      await deleteData(path);
+      await updateData(path, null);
       toast.success("Transaction deleted successfully");
       setDeleteConfirmation({open: false, id: "", type: ""});
-      await refreshData();
     } catch (error) {
       console.error("Error deleting transaction:", error);
       toast.error("Failed to delete transaction");
@@ -179,19 +175,6 @@ export function TransactionsPanel({ transactions, usedOrderIds, refreshData }: T
       return format(new Date(dateString), "PPP p");
     } catch (e) {
       return dateString;
-    }
-  };
-
-  const handleDeleteOrderId = async (orderId: string) => {
-    const path = `/used_orderids/${orderId}`;
-    try {
-      await deleteData(path);
-      toast.success("Order ID deleted successfully");
-      setDeleteOrderIdConfirmation({ open: false, orderId: "" });
-      await refreshData();
-    } catch (error) {
-      console.error("Error deleting Order ID:", error);
-      toast.error("Failed to delete Order ID");
     }
   };
 
@@ -494,7 +477,18 @@ export function TransactionsPanel({ transactions, usedOrderIds, refreshData }: T
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDeleteOrderId(deleteOrderIdConfirmation.orderId)}
+              onClick={() => {
+                const path = `/used_orderids/${deleteOrderIdConfirmation.orderId}`;
+                updateData(path, null)
+                  .then(() => {
+                    toast.success("Order ID deleted successfully");
+                    setDeleteOrderIdConfirmation({open: false, orderId: ""});
+                  })
+                  .catch((error) => {
+                    console.error("Error deleting Order ID:", error);
+                    toast.error("Failed to delete Order ID");
+                  });
+              }}
             >
               Delete
             </AlertDialogAction>

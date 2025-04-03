@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -18,23 +18,22 @@ export default function NetflixAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
 
-  const refreshData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchNetflixData("/");
-      setDbData(data);
-      toast.success("Netflix database loaded successfully");
-    } catch (error) {
-      console.error("Error loading Netflix database:", error);
-      toast.error("Failed to load Netflix database");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchNetflixData("/");
+        setDbData(data);
+        toast.success("Netflix database loaded successfully");
+      } catch (error) {
+        console.error("Error loading Netflix database:", error);
+        toast.error("Failed to load Netflix database");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   if (loading) {
     return <MainLayout className="flex items-center justify-center min-h-screen">
@@ -74,40 +73,24 @@ export default function NetflixAdmin() {
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel 
-              credentials={{
-                cred1: dbData.cred1,
-                cred2: dbData.cred2,
-                cred3: dbData.cred3,
-                cred4: dbData.cred4
-              }} 
-              slots={dbData.settings.slots}
-              refreshData={refreshData}
-            />
+            <CredentialsPanel credentials={{
+            cred1: dbData.cred1,
+            cred2: dbData.cred2,
+            cred3: dbData.cred3,
+            cred4: dbData.cred4
+          }} slots={dbData.settings.slots} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">
-            <SlotsPanel 
-              slots={dbData.settings.slots}
-              refreshData={refreshData}
-            />
+            <SlotsPanel slots={dbData.settings.slots} />
           </TabsContent>
           
           <TabsContent value="referrals" className="mt-0">
-            <ReferralsPanel 
-              referrals={dbData.referrals} 
-              referralSettings={dbData.referral_settings} 
-              freeTrialClaims={dbData.free_trial_claims}
-              refreshData={refreshData}
-            />
+            <ReferralsPanel referrals={dbData.referrals} referralSettings={dbData.referral_settings} freeTrialClaims={dbData.free_trial_claims} />
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-0">
-            <TransactionsPanel 
-              transactions={dbData.transactions} 
-              usedOrderIds={dbData.used_orderids}
-              refreshData={refreshData}
-            />
+            <TransactionsPanel transactions={dbData.transactions} usedOrderIds={dbData.used_orderids} />
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">

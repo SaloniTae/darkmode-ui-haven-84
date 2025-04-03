@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface DataCardProps {
-  title: ReactNode;
+  title: string;
   children: ReactNode;
   footer?: ReactNode;
   className?: string;

@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { updateData, deleteData, setData } from "@/lib/firebase";
+import { updateData, removeData, setData } from "@/lib/firebase";
 import { toast } from "sonner";
 
 interface UsersPanelProps {
@@ -69,7 +69,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
     if (!selectedUser) return;
     
     try {
-      await deleteData(`/users/${selectedUser}`);
+      await removeData(`/users/${selectedUser}`);
       toast.success(`User ${selectedUser} removed successfully`);
       
       // Update local state

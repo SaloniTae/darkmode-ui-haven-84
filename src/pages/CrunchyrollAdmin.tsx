@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -22,27 +22,26 @@ export default function CrunchyrollAdmin() {
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
 
-  const refreshData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchData("/");
-      setDbData(data);
-      toast.success("Crunchyroll database loaded successfully");
-    } catch (error) {
-      console.error("Error loading Crunchyroll database:", error);
-      toast.error("Failed to load Crunchyroll database");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     // Only fetch data if authenticated and not already fetched
     if (isAuthenticated && !dataFetchedRef.current) {
-      refreshData();
-      dataFetchedRef.current = true;
+      const loadData = async () => {
+        try {
+          setLoading(true);
+          const data = await fetchData("/");
+          setDbData(data);
+          toast.success("Crunchyroll database loaded successfully");
+          dataFetchedRef.current = true;
+        } catch (error) {
+          console.error("Error loading Crunchyroll database:", error);
+          toast.error("Failed to load Crunchyroll database");
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadData();
     }
-  }, [isAuthenticated, refreshData]);
+  }, [isAuthenticated]);
 
   // If not authenticated, don't show anything as the ProtectedRoute component
   // will handle the redirect to login page
@@ -93,55 +92,48 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel 
-              credentials={{
-                cred1: dbData?.cred1 || {
-                  belongs_to_slot: "",
-                  email: "",
-                  password: "",
-                  expiry_date: "",
-                  locked: 0,
-                  max_usage: 0,
-                  usage_count: 0
-                },
-                cred2: dbData?.cred2 || {
-                  belongs_to_slot: "",
-                  email: "",
-                  password: "",
-                  expiry_date: "",
-                  locked: 0,
-                  max_usage: 0,
-                  usage_count: 0
-                },
-                cred3: dbData?.cred3 || {
-                  belongs_to_slot: "",
-                  email: "",
-                  password: "",
-                  expiry_date: "",
-                  locked: 0,
-                  max_usage: 0,
-                  usage_count: 0
-                },
-                cred4: dbData?.cred4 || {
-                  belongs_to_slot: "",
-                  email: "",
-                  password: "",
-                  expiry_date: "",
-                  locked: 0,
-                  max_usage: 0,
-                  usage_count: 0
-                }
-              }} 
-              slots={dbData?.settings?.slots || {}}
-              refreshData={refreshData}
-            />
+            <CredentialsPanel credentials={{
+              cred1: dbData?.cred1 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred2: dbData?.cred2 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred3: dbData?.cred3 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              },
+              cred4: dbData?.cred4 || {
+                belongs_to_slot: "",
+                email: "",
+                password: "",
+                expiry_date: "",
+                locked: 0,
+                max_usage: 0,
+                usage_count: 0
+              }
+            }} slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">
-            <SlotsPanel 
-              slots={dbData?.settings?.slots || {}}
-              refreshData={refreshData} 
-            />
+            <SlotsPanel slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
           <TabsContent value="referrals" className="mt-0">
@@ -153,17 +145,12 @@ export default function CrunchyrollAdmin() {
                 points_per_referral: 0,
                 required_point: 0
               }} 
-              freeTrialClaims={dbData?.free_trial_claims || {}}
-              refreshData={refreshData}
+              freeTrialClaims={dbData?.free_trial_claims || {}} 
             />
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-0">
-            <TransactionsPanel 
-              transactions={dbData?.transactions || {}} 
-              usedOrderIds={dbData?.used_orderids || {}}
-              refreshData={refreshData}
-            />
+            <TransactionsPanel transactions={dbData?.transactions || {}} usedOrderIds={dbData?.used_orderids || {}} />
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
