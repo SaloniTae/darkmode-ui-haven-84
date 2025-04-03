@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Referral, ReferralSettings } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Save, Plus, Award, User, Users, Trash2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { updateData } from "@/lib/firebase";
+import { updateData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -46,6 +46,11 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
     open: false,
     userId: ""
   });
+
+  // Update local state when props change due to real-time updates
+  useEffect(() => {
+    setEditedSettings({ ...referralSettings });
+  }, [referralSettings]);
 
   const handleSaveSettings = async () => {
     try {
@@ -94,8 +99,15 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
   };
 
   const handleDeleteReferral = async (userId: string) => {
+    setDeleteConfirmation({
+      open: true,
+      userId
+    });
+  };
+
+  const confirmDeleteReferral = async (userId: string) => {
     try {
-      await updateData(`/referrals/${userId}`, null);
+      await removeData(`/referrals/${userId}`);
       toast.success("Referral deleted successfully");
       setDeleteConfirmation({open: false, userId: ""});
     } catch (error) {
@@ -314,7 +326,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                           <Button 
                             variant="destructive" 
                             size="sm"
-                            onClick={() => setDeleteConfirmation({open: true, userId})}
+                            onClick={() => handleDeleteReferral(userId)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -438,7 +450,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDeleteReferral(deleteConfirmation.userId)}
+              onClick={() => confirmDeleteReferral(deleteConfirmation.userId)}
             >
               Delete
             </AlertDialogAction>

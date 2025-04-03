@@ -148,4 +148,5 @@ export interface DatabaseSchema {
   users: {
     [key: string]: boolean;
   };
+  [key: string]: any; // Allow for dynamic credential keys
 }

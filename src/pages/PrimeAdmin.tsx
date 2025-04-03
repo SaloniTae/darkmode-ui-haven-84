@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -10,13 +10,14 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchPrimeData } from "@/lib/firebase-prime";
+import { fetchPrimeData, subscribeToPrimeData } from "@/lib/firebase-prime";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
 export default function PrimeAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -25,6 +26,13 @@ export default function PrimeAdmin() {
         const data = await fetchPrimeData("/");
         setDbData(data);
         toast.success("Prime database loaded successfully");
+        
+        // Set up real-time subscription
+        unsubscribeRef.current = subscribeToPrimeData("/", (updatedData) => {
+          if (updatedData) {
+            setDbData(updatedData);
+          }
+        });
       } catch (error) {
         console.error("Error loading Prime database:", error);
         toast.error("Failed to load Prime database");
@@ -32,7 +40,15 @@ export default function PrimeAdmin() {
         setLoading(false);
       }
     };
+    
     loadData();
+    
+    // Clean up subscription
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
   }, []);
 
   if (loading) {
@@ -52,6 +68,10 @@ export default function PrimeAdmin() {
         </div>
       </MainLayout>;
   }
+
+  // Extract all credential objects from dbData
+  const credentialEntries = Object.entries(dbData).filter(([key]) => key.startsWith('cred'));
+  const credentials = Object.fromEntries(credentialEntries);
 
   return <MainLayout>
       <div className="space-y-8">
@@ -73,12 +93,7 @@ export default function PrimeAdmin() {
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel credentials={{
-            cred1: dbData.cred1,
-            cred2: dbData.cred2,
-            cred3: dbData.cred3,
-            cred4: dbData.cred4
-          }} slots={dbData.settings.slots} />
+            <CredentialsPanel credentials={credentials} slots={dbData.settings.slots} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">

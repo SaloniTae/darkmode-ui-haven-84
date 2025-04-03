@@ -11,7 +11,7 @@ import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
-import { fetchData } from "@/lib/firebase";
+import { fetchData, subscribeToData } from "@/lib/firebase";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +21,7 @@ export default function CrunchyrollAdmin() {
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     // Only fetch data if authenticated and not already fetched
@@ -32,6 +33,13 @@ export default function CrunchyrollAdmin() {
           setDbData(data);
           toast.success("Crunchyroll database loaded successfully");
           dataFetchedRef.current = true;
+          
+          // Set up real-time subscription
+          unsubscribeRef.current = subscribeToData("/", (updatedData) => {
+            if (updatedData) {
+              setDbData(updatedData);
+            }
+          });
         } catch (error) {
           console.error("Error loading Crunchyroll database:", error);
           toast.error("Failed to load Crunchyroll database");
@@ -41,6 +49,13 @@ export default function CrunchyrollAdmin() {
       };
       loadData();
     }
+    
+    // Clean up subscription
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
   }, [isAuthenticated]);
 
   // If not authenticated, don't show anything as the ProtectedRoute component
@@ -67,6 +82,10 @@ export default function CrunchyrollAdmin() {
       </MainLayout>;
   }
 
+  // Extract all credential objects from dbData
+  const credentialEntries = Object.entries(dbData).filter(([key]) => key.startsWith('cred'));
+  const credentials = Object.fromEntries(credentialEntries);
+
   return <MainLayout>
       <div className="space-y-8">
         <h1 className="text-3xl font-bold">Crunchyroll Admin Dashboard</h1>
@@ -92,44 +111,7 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel credentials={{
-              cred1: dbData?.cred1 || {
-                belongs_to_slot: "",
-                email: "",
-                password: "",
-                expiry_date: "",
-                locked: 0,
-                max_usage: 0,
-                usage_count: 0
-              },
-              cred2: dbData?.cred2 || {
-                belongs_to_slot: "",
-                email: "",
-                password: "",
-                expiry_date: "",
-                locked: 0,
-                max_usage: 0,
-                usage_count: 0
-              },
-              cred3: dbData?.cred3 || {
-                belongs_to_slot: "",
-                email: "",
-                password: "",
-                expiry_date: "",
-                locked: 0,
-                max_usage: 0,
-                usage_count: 0
-              },
-              cred4: dbData?.cred4 || {
-                belongs_to_slot: "",
-                email: "",
-                password: "",
-                expiry_date: "",
-                locked: 0,
-                max_usage: 0,
-                usage_count: 0
-              }
-            }} slots={dbData?.settings?.slots || {}} />
+            <CredentialsPanel credentials={credentials} slots={dbData?.settings?.slots || {}} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">

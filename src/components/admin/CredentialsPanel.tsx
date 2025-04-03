@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slots } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { updateData, setData, removeData, subscribeToData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -47,14 +47,19 @@ interface CredentialsPanelProps {
   slots: Slots;
 }
 
-export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) {
+export function CredentialsPanel({ credentials: initialCredentials, slots }: CredentialsPanelProps) {
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
-  const [editedCredentials, setEditedCredentials] = useState({ ...credentials });
+  const [editedCredentials, setEditedCredentials] = useState<{[key: string]: Credential}>(initialCredentials);
+  const [credentials, setCredentials] = useState<{[key: string]: Credential}>(initialCredentials);
   const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
     open: false,
     action: async () => {},
     title: "",
     description: ""
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{open: boolean; credKey: string}>({
+    open: false,
+    credKey: ""
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isAddingCredential, setIsAddingCredential] = useState(false);
@@ -69,13 +74,38 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   });
   const [newCredentialKey, setNewCredentialKey] = useState("");
 
+  // Subscribe to real-time updates for credentials
+  useEffect(() => {
+    const unsubscribe = subscribeToData('/', (data) => {
+      if (data) {
+        const credentialKeys = Object.keys(data).filter(key => key.startsWith('cred'));
+        const credsData: {[key: string]: Credential} = {};
+        
+        credentialKeys.forEach(key => {
+          if (data[key]) {
+            credsData[key] = data[key];
+          }
+        });
+        
+        setCredentials(credsData);
+        setEditedCredentials(credsData);
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
     
     // Convert the string date to a Date object for the calendar
     try {
-      const currentCred = editedCredentials[credKey as keyof typeof credentials];
-      setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
+      const currentCred = editedCredentials[credKey];
+      if (currentCred) {
+        setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
+      }
     } catch (e) {
       setSelectedDate(new Date());
     }
@@ -89,7 +119,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
 
   const handleSaveCredential = async (credKey: string) => {
     try {
-      await updateData(`/${credKey}`, editedCredentials[credKey as keyof typeof credentials]);
+      await updateData(`/${credKey}`, editedCredentials[credKey]);
       toast.success(`${credKey} updated successfully`);
       setEditingCredential(null);
       setSelectedDate(undefined);
@@ -103,14 +133,16 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     setEditedCredentials({
       ...editedCredentials,
       [credKey]: {
-        ...editedCredentials[credKey as keyof typeof credentials],
+        ...editedCredentials[credKey],
         [field]: value
       }
     });
   };
 
   const handleToggleLock = async (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
+    if (!currentCred) return;
+    
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     try {
@@ -132,7 +164,9 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const toggleLockState = (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
+    if (!currentCred) return;
+    
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     setConfirmationDialog({
@@ -141,6 +175,24 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       title: `${newLockedValue === 1 ? 'Lock' : 'Unlock'} ${credKey}`,
       description: `Are you sure you want to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}?`
     });
+  };
+
+  const handleDeleteCredential = async (credKey: string) => {
+    setDeleteDialog({
+      open: true,
+      credKey
+    });
+  };
+
+  const confirmDeleteCredential = async (credKey: string) => {
+    try {
+      await removeData(`/${credKey}`);
+      toast.success(`${credKey} deleted successfully`);
+      setDeleteDialog({ open: false, credKey: "" });
+    } catch (error) {
+      console.error(`Error deleting ${credKey}:`, error);
+      toast.error(`Failed to delete ${credKey}`);
+    }
   };
 
   const formatDate = (dateString: string): string => {
@@ -184,12 +236,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       await setData(`/${newCredentialKey}`, newCredential);
       toast.success(`${newCredentialKey} created successfully`);
       
-      // Update local state with new credential
-      setEditedCredentials({
-        ...editedCredentials,
-        [newCredentialKey]: newCredential
-      });
-      
       // Reset form and close dialog
       setNewCredentialKey("");
       setNewCredential({
@@ -220,13 +266,15 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.entries(credentials).map(([credKey, cred]) => {
           const isEditing = editingCredential === credKey;
-          const currentCred = editedCredentials[credKey as keyof typeof credentials];
+          const currentCred = editedCredentials[credKey] || cred;
           
           return (
             <DataCard
               key={credKey}
               title={credKey}
               className={currentCred.locked === 0 ? "border-green-500/30" : "border-red-500/30"}
+              deletable={true}
+              onDelete={() => handleDeleteCredential(credKey)}
             >
               <div className="space-y-4">
                 {isEditing ? (
@@ -438,6 +486,34 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
               }}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteDialog.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteDialog({...deleteDialog, open: false});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteDialog.credKey}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This credential will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => confirmDeleteCredential(deleteDialog.credKey)}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
