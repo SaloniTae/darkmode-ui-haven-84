@@ -4,12 +4,11 @@ import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Search, Calendar, Clock, CheckCircle, AlertCircle, Filter, Edit } from "lucide-react";
+import { Trash2, Search, Calendar, Clock, CheckCircle, AlertCircle, Filter } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { updateData, removeData } from "@/lib/firebase";
+import { removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -21,16 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 
 interface TransactionsPanelProps {
   transactions: Transactions;
@@ -50,8 +40,6 @@ interface ProcessedTransaction {
 export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
-  const [editedData, setEditedData] = useState<any>(null);
   const [localTransactions, setLocalTransactions] = useState<Transactions>({...transactions});
   const [localUsedOrderIds, setLocalUsedOrderIds] = useState<{[key: string]: boolean}>({...usedOrderIds});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; id: string; type: string}>({
@@ -132,47 +120,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
 
   const processedTransactions = processTransactions();
 
-  const handleEditTransaction = (transaction: ProcessedTransaction) => {
-    setEditingTransaction(transaction);
-    setEditedData({...transaction.originalData});
-  };
-
-  const handleSaveTransaction = async () => {
-    if (!editingTransaction || !editedData) return;
-    
-    const path = editingTransaction.type === "Regular" 
-      ? `/${editingTransaction.id}` 
-      : `/${editingTransaction.type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${editingTransaction.id}`;
-    
-    try {
-      await updateData(path, editedData);
-      
-      // Update local state
-      if (editingTransaction.type === "Regular") {
-        setLocalTransactions(prev => ({
-          ...prev,
-          [editingTransaction.id]: editedData
-        }));
-      } else {
-        const typeKey = editingTransaction.type === "Free Trial" ? "FTRIAL-ID" : "REF-ID";
-        setLocalTransactions(prev => ({
-          ...prev,
-          [typeKey]: {
-            ...prev[typeKey],
-            [editingTransaction.id]: editedData
-          }
-        }));
-      }
-      
-      toast.success("Transaction updated successfully");
-      setEditingTransaction(null);
-      setEditedData(null);
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-      toast.error("Failed to update transaction");
-    }
-  };
-
   const handleDeleteTransaction = async (id: string, type: string) => {
     const path = type === "Regular" 
       ? `/${id}` 
@@ -220,15 +167,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       console.error("Error deleting Order ID:", error);
       toast.error("Failed to delete Order ID");
     }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    if (!editedData) return;
-    
-    setEditedData({
-      ...editedData,
-      [field]: value
-    });
   };
 
   const formatDateTime = (dateString: string): string => {
@@ -356,13 +294,6 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditTransaction(transaction)}
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
                           variant="destructive" 
                           size="sm"
                           onClick={() => setDeleteConfirmation({
@@ -422,76 +353,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         </div>
       </div>
       
-      {editingTransaction && editedData && (
-        <Dialog open={!!editingTransaction} onOpenChange={(open) => {
-          if (!open) {
-            setEditingTransaction(null);
-            setEditedData(null);
-          }
-        }}>
-          <DialogContent className="bg-background">
-            <DialogHeader>
-              <DialogTitle>Edit Transaction</DialogTitle>
-              <DialogDescription>
-                Update the details for transaction ID: {editingTransaction.id}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="slot-id">Slot ID</Label>
-                <Input
-                  id="slot-id"
-                  value={editedData.slot_id || ""}
-                  onChange={(e) => handleInputChange('slot_id', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="start-time">Start Time</Label>
-                  <Input
-                    id="start-time"
-                    value={editedData.start_time || ""}
-                    onChange={(e) => handleInputChange('start_time', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="end-time">End Time</Label>
-                  <Input
-                    id="end-time"
-                    value={editedData.end_time || ""}
-                    onChange={(e) => handleInputChange('end_time', e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="approved-at">Approval Time</Label>
-                <Input
-                  id="approved-at"
-                  value={editedData.approved_at || ""}
-                  onChange={(e) => handleInputChange('approved_at', e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setEditingTransaction(null);
-                setEditedData(null);
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveTransaction}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-      
+      {/* Confirm Delete Dialog */}
       <AlertDialog 
         open={deleteConfirmation.open} 
         onOpenChange={(open) => {
@@ -519,6 +381,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         </AlertDialogContent>
       </AlertDialog>
       
+      {/* Delete Order ID Confirmation Dialog */}
       <AlertDialog 
         open={deleteOrderIdConfirmation.open} 
         onOpenChange={(open) => {
