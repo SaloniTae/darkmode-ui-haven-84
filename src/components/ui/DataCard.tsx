@@ -2,7 +2,6 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 interface DataCardProps {
   title: string;
@@ -19,7 +18,7 @@ export function DataCard({
   footer, 
   className, 
   cardClassName,
-  onClick,
+  onClick
 }: DataCardProps) {
   return (
     <Card 
@@ -28,12 +27,10 @@ export function DataCard({
         onClick ? "cursor-pointer hover:translate-y-[-4px] hover:shadow-lg" : "",
         cardClassName
       )}
-      onClick={onClick ? onClick : undefined}
+      onClick={onClick}
     >
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
-        </div>
+        <CardTitle className="text-lg font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent className={cn("", className)}>
         {children}

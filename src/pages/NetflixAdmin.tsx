@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -10,14 +10,13 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchNetflixData, subscribeToNetflixData } from "@/lib/firebase-netflix";
+import { fetchNetflixData } from "@/lib/firebase-netflix";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
 export default function NetflixAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,13 +25,6 @@ export default function NetflixAdmin() {
         const data = await fetchNetflixData("/");
         setDbData(data);
         toast.success("Netflix database loaded successfully");
-        
-        // Set up real-time subscription
-        unsubscribeRef.current = subscribeToNetflixData("/", (updatedData) => {
-          if (updatedData) {
-            setDbData(updatedData);
-          }
-        });
       } catch (error) {
         console.error("Error loading Netflix database:", error);
         toast.error("Failed to load Netflix database");
@@ -40,15 +32,7 @@ export default function NetflixAdmin() {
         setLoading(false);
       }
     };
-    
     loadData();
-    
-    // Clean up subscription
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
   }, []);
 
   if (loading) {
@@ -68,10 +52,6 @@ export default function NetflixAdmin() {
         </div>
       </MainLayout>;
   }
-
-  // Extract all credential objects from dbData
-  const credentialEntries = Object.entries(dbData).filter(([key]) => key.startsWith('cred'));
-  const credentials = Object.fromEntries(credentialEntries);
 
   return <MainLayout>
       <div className="space-y-8">
@@ -93,7 +73,12 @@ export default function NetflixAdmin() {
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel credentials={credentials} slots={dbData.settings.slots} />
+            <CredentialsPanel credentials={{
+            cred1: dbData.cred1,
+            cred2: dbData.cred2,
+            cred3: dbData.cred3,
+            cred4: dbData.cred4
+          }} slots={dbData.settings.slots} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">
