@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -35,6 +34,7 @@ import { format, parse } from "date-fns";
 interface TransactionsPanelProps {
   transactions: Transactions;
   usedOrderIds: { [key: string]: boolean };
+  onDeleteTransaction?: (transactionId: string) => Promise<void>;
 }
 
 interface ProcessedTransaction {
@@ -47,7 +47,7 @@ interface ProcessedTransaction {
   originalData: any;
 }
 
-export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPanelProps) {
+export function TransactionsPanel({ transactions, usedOrderIds, onDeleteTransaction }: TransactionsPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
