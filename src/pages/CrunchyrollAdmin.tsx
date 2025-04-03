@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPanel } from "@/components/admin/AdminPanel";
@@ -22,7 +22,7 @@ export default function CrunchyrollAdmin() {
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchData("/");
@@ -34,7 +34,7 @@ export default function CrunchyrollAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Only fetch data if authenticated and not already fetched
@@ -42,7 +42,7 @@ export default function CrunchyrollAdmin() {
       refreshData();
       dataFetchedRef.current = true;
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, refreshData]);
 
   // If not authenticated, don't show anything as the ProtectedRoute component
   // will handle the redirect to login page

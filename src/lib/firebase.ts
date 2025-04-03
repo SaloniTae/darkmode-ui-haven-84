@@ -43,3 +43,6 @@ export const deleteData = async (path: string) => {
   const reference = ref(database, path);
   return await remove(reference);
 };
+
+// Export removeData as an alias to deleteData for backward compatibility
+export const removeData = deleteData;
