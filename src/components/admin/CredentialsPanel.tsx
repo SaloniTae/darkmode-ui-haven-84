@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { updateData, setData, deleteData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Credential {
   belongs_to_slot: string;
@@ -45,9 +46,10 @@ interface CredentialsPanelProps {
     [key: string]: Credential;
   };
   slots: Slots;
+  refreshData: () => Promise<void>;
 }
 
-export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) {
+export function CredentialsPanel({ credentials, slots, refreshData }: CredentialsPanelProps) {
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
   const [editedCredentials, setEditedCredentials] = useState({ ...credentials });
   const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
@@ -68,6 +70,11 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     usage_count: 0
   });
   const [newCredentialKey, setNewCredentialKey] = useState("");
+  const [deletingCredential, setDeletingCredential] = useState<{open: boolean; credKey: string}>({
+    open: false,
+    credKey: ""
+  });
+  const [selectedCredentials, setSelectedCredentials] = useState<string[]>([]);
 
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
@@ -93,6 +100,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       toast.success(`${credKey} updated successfully`);
       setEditingCredential(null);
       setSelectedDate(undefined);
+      await refreshData();
     } catch (error) {
       console.error(`Error updating ${credKey}:`, error);
       toast.error(`Failed to update ${credKey}`);
@@ -125,6 +133,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       });
       
       toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
+      await refreshData();
     } catch (error) {
       console.error(`Error updating lock state for ${credKey}:`, error);
       toast.error(`Failed to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}`);
@@ -202,9 +211,58 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
         usage_count: 0
       });
       setIsAddingCredential(false);
+      await refreshData();
     } catch (error) {
       console.error("Error creating credential:", error);
       toast.error("Failed to create credential");
+    }
+  };
+
+  const handleDeleteCredential = async (credKey: string) => {
+    try {
+      await deleteData(`/${credKey}`);
+      toast.success(`${credKey} deleted successfully`);
+      setDeletingCredential({open: false, credKey: ""});
+      await refreshData();
+    } catch (error) {
+      console.error(`Error deleting ${credKey}:`, error);
+      toast.error(`Failed to delete ${credKey}`);
+    }
+  };
+
+  const handleDeleteSelectedCredentials = async () => {
+    if (selectedCredentials.length === 0) {
+      toast.error("No credentials selected for deletion");
+      return;
+    }
+
+    setConfirmationDialog({
+      open: true,
+      action: async () => {
+        try {
+          let successCount = 0;
+          for (const credKey of selectedCredentials) {
+            await deleteData(`/${credKey}`);
+            successCount++;
+          }
+          toast.success(`${successCount} credential(s) deleted successfully`);
+          setSelectedCredentials([]);
+          await refreshData();
+        } catch (error) {
+          console.error("Error deleting selected credentials:", error);
+          toast.error("Failed to delete some credentials");
+        }
+      },
+      title: "Delete Selected Credentials",
+      description: `Are you sure you want to delete ${selectedCredentials.length} selected credential(s)?`
+    });
+  };
+
+  const handleSelectCredential = (credKey: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCredentials([...selectedCredentials, credKey]);
+    } else {
+      setSelectedCredentials(selectedCredentials.filter(key => key !== credKey));
     }
   };
 
@@ -212,9 +270,16 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Credentials Management</h2>
-        <Button onClick={() => setIsAddingCredential(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Credential
-        </Button>
+        <div className="flex space-x-2">
+          {selectedCredentials.length > 0 && (
+            <Button variant="destructive" onClick={handleDeleteSelectedCredentials}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Selected ({selectedCredentials.length})
+            </Button>
+          )}
+          <Button onClick={() => setIsAddingCredential(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Credential
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -349,43 +414,55 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                   </>
                 ) : (
                   <>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <Checkbox 
+                        id={`select-${credKey}`}
+                        checked={selectedCredentials.includes(credKey)}
+                        onCheckedChange={(checked) => handleSelectCredential(credKey, checked === true)}
+                      />
+                      <div className="flex items-center space-x-2">
                         <Badge variant={currentCred.locked === 0 ? "outline" : "destructive"} className={cn("px-2 py-1", currentCred.locked === 0 ? "bg-green-500/20 text-green-600 hover:bg-green-500/30 hover:text-green-700" : "")}>
                           {currentCred.locked === 0 ? "Unlocked" : "Locked"}
                         </Badge>
                         <Badge variant="outline" className="bg-primary/10">{currentCred.belongs_to_slot}</Badge>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div className="glass-morphism p-3 rounded-md">
-                          <p className="text-sm text-muted-foreground mb-1">Email</p>
-                          <p className="font-medium text-sm break-all">{currentCred.email}</p>
-                        </div>
-                        
-                        <div className="glass-morphism p-3 rounded-md">
-                          <p className="text-sm text-muted-foreground mb-1">Password</p>
-                          <p className="font-medium text-sm break-all">{currentCred.password}</p>
-                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="glass-morphism p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground mb-1">Email</p>
+                        <p className="font-medium text-sm break-all">{currentCred.email}</p>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="glass-morphism p-2 rounded-md">
-                          <p className="text-xs text-muted-foreground">Expiry</p>
-                          <p className="font-medium text-sm">{formatDate(currentCred.expiry_date)}</p>
-                        </div>
-                        <div className="glass-morphism p-2 rounded-md">
-                          <p className="text-xs text-muted-foreground">Max Usage</p>
-                          <p className="font-medium text-sm">{currentCred.max_usage}</p>
-                        </div>
-                        <div className="glass-morphism p-2 rounded-md">
-                          <p className="text-xs text-muted-foreground">Usage Count</p>
-                          <p className="font-medium text-sm">{currentCred.usage_count}</p>
-                        </div>
+                      <div className="glass-morphism p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground mb-1">Password</p>
+                        <p className="font-medium text-sm break-all">{currentCred.password}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="glass-morphism p-2 rounded-md">
+                        <p className="text-xs text-muted-foreground">Expiry</p>
+                        <p className="font-medium text-sm">{formatDate(currentCred.expiry_date)}</p>
+                      </div>
+                      <div className="glass-morphism p-2 rounded-md">
+                        <p className="text-xs text-muted-foreground">Max Usage</p>
+                        <p className="font-medium text-sm">{currentCred.max_usage}</p>
+                      </div>
+                      <div className="glass-morphism p-2 rounded-md">
+                        <p className="text-xs text-muted-foreground">Usage Count</p>
+                        <p className="font-medium text-sm">{currentCred.usage_count}</p>
                       </div>
                     </div>
                     
                     <div className="flex justify-end space-x-2 pt-2">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => setDeletingCredential({open: true, credKey})}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </Button>
                       <Button 
                         variant={currentCred.locked === 0 ? "destructive" : "outline"} 
                         size="sm"
@@ -438,6 +515,34 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
               }}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete Credential Dialog */}
+      <AlertDialog
+        open={deletingCredential.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingCredential({open: false, credKey: ""});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Credential</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingCredential.credKey}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDeleteCredential(deletingCredential.credKey)}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

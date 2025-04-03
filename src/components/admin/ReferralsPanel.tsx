@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Save, Plus, Award, User, Users, Trash2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { updateData } from "@/lib/firebase";
+import { updateData, deleteData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -34,9 +34,10 @@ interface ReferralsPanelProps {
   referrals: { [key: string]: Referral };
   referralSettings: ReferralSettings;
   freeTrialClaims: { [key: string]: boolean };
+  refreshData: () => Promise<void>;
 }
 
-export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }: ReferralsPanelProps) {
+export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims, refreshData }: ReferralsPanelProps) {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [editedSettings, setEditedSettings] = useState<ReferralSettings>({ ...referralSettings });
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,6 +53,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
       await updateData("/referral_settings", editedSettings);
       toast.success("Referral settings updated successfully");
       setIsEditingSettings(false);
+      await refreshData();
     } catch (error) {
       console.error("Error updating referral settings:", error);
       toast.error("Failed to update referral settings");
@@ -87,6 +89,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
       toast.success("Referral updated successfully");
       setEditingReferral(null);
       setEditedReferral(null);
+      await refreshData();
     } catch (error) {
       console.error("Error updating referral:", error);
       toast.error("Failed to update referral");
@@ -95,12 +98,24 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
 
   const handleDeleteReferral = async (userId: string) => {
     try {
-      await updateData(`/referrals/${userId}`, null);
+      await deleteData(`/referrals/${userId}`);
       toast.success("Referral deleted successfully");
       setDeleteConfirmation({open: false, userId: ""});
+      await refreshData();
     } catch (error) {
       console.error("Error deleting referral:", error);
       toast.error("Failed to delete referral");
+    }
+  };
+
+  const handleDeleteFreeTrialClaim = async (userId: string) => {
+    try {
+      await deleteData(`/free_trial_claims/${userId}`);
+      toast.success("Free trial claim deleted successfully");
+      await refreshData();
+    } catch (error) {
+      console.error("Error deleting free trial claim:", error);
+      toast.error("Failed to delete free trial claim");
     }
   };
 
@@ -228,6 +243,7 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                   <TableRow>
                     <TableHead>User ID</TableHead>
                     <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -240,11 +256,20 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
                             {claimed ? "Claimed" : "Pending"}
                           </span>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteFreeTrialClaim(userId)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No free trial claims yet
                       </TableCell>
                     </TableRow>
