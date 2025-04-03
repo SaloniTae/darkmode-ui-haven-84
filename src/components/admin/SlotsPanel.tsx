@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Slots, Slot } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -7,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, Calendar, Clock, DollarSign, Check, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { Edit, Save, Calendar, Clock, DollarSign, Check, PlusCircle, Trash2 } from "lucide-react";
+import { updateData, setData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -115,6 +114,28 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
     });
   };
 
+  const handleDeleteSlot = (slotKey: string) => {
+    setConfirmationDialog({
+      open: true,
+      action: async () => {
+        try {
+          await removeData(`/settings/slots/${slotKey}`);
+          
+          const updatedSlots = { ...editedSlots };
+          delete updatedSlots[slotKey];
+          setEditedSlots(updatedSlots);
+          
+          toast.success(`Slot ${slotKey} deleted successfully`);
+        } catch (error) {
+          console.error(`Error deleting slot ${slotKey}:`, error);
+          toast.error(`Failed to delete slot ${slotKey}`);
+        }
+      },
+      title: `Delete ${slotKey}`,
+      description: `Are you sure you want to delete ${slotKey}? This action cannot be undone.`
+    });
+  };
+
   const handleDateTimeSelect = (slotKey: string, field: 'slot_start' | 'slot_end' | 'last_update', date: Date | undefined) => {
     if (date) {
       const formattedDate = format(date, "yyyy-MM-dd HH:mm:ss");
@@ -139,13 +160,11 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
       await setData(`/settings/slots/${newSlotKey}`, newSlot);
       toast.success(`Slot ${newSlotKey} created successfully`);
       
-      // Update local state with new slot
       setEditedSlots({
         ...editedSlots,
         [newSlotKey]: newSlot
       });
       
-      // Reset form and close dialog
       setNewSlotKey("");
       setNewSlot({
         enabled: true,
@@ -163,7 +182,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   };
 
   const parseSlotDateTime = (dateTimeStr: string): Date => {
-    // Handle various date formats
     try {
       return parse(dateTimeStr, 'yyyy-MM-dd HH:mm:ss', new Date());
     } catch (error) {
@@ -174,19 +192,15 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   const formatDateTimeForDisplay = (dateTimeStr: string): string => {
     try {
       const date = parse(dateTimeStr, 'yyyy-MM-dd HH:mm:ss', new Date());
-      return format(date, 'MMM dd, yyyy hh:mm a'); // 12-hour format with AM/PM
+      return format(date, 'MMM dd, yyyy hh:mm a');
     } catch (error) {
       return dateTimeStr;
     }
   };
 
   const getTimePickerValues = () => {
-    // Generate hours in 12-hour format (1-12)
     const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-    
-    // Generate all minutes (00-59)
     const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-    
     const periods = ['AM', 'PM'];
     return { hours, minutes, periods };
   };
@@ -278,7 +292,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                   selected={parseSlotDateTime(currentSlot.slot_start)}
                                   onSelect={(date) => {
                                     if (date) {
-                                      // Preserve time when changing date
                                       const currentDateTime = parseSlotDateTime(currentSlot.slot_start);
                                       const newDate = new Date(date);
                                       newDate.setHours(
@@ -404,7 +417,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                   selected={parseSlotDateTime(currentSlot.slot_end)}
                                   onSelect={(date) => {
                                     if (date) {
-                                      // Preserve time when changing date
                                       const currentDateTime = parseSlotDateTime(currentSlot.slot_end);
                                       const newDate = new Date(date);
                                       newDate.setHours(
@@ -530,7 +542,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                                   selected={parseSlotDateTime(currentSlot.last_update)}
                                   onSelect={(date) => {
                                     if (date) {
-                                      // Preserve time when changing date
                                       const currentDateTime = parseSlotDateTime(currentSlot.last_update);
                                       const newDate = new Date(date);
                                       newDate.setHours(
@@ -687,6 +698,13 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                     
                     <div className="flex justify-end space-x-2 pt-2">
                       <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteSlot(slotKey)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </Button>
+                      <Button 
                         variant={currentSlot.enabled ? "destructive" : "outline"}
                         size="sm"
                         onClick={() => toggleSlotEnabled(slotKey)}
@@ -709,7 +727,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
         })}
       </div>
 
-      {/* Confirmation Dialog */}
       <AlertDialog 
         open={confirmationDialog.open} 
         onOpenChange={(open) => {
@@ -739,7 +756,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Add Slot Dialog */}
       <AlertDialog 
         open={isAddingSlot} 
         onOpenChange={setIsAddingSlot}
@@ -824,7 +840,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                         selected={parseSlotDateTime(newSlot.slot_start)}
                         onSelect={(date) => {
                           if (date) {
-                            // Preserve time when changing date
                             const currentDateTime = parseSlotDateTime(newSlot.slot_start);
                             const newDate = new Date(date);
                             newDate.setHours(
@@ -865,7 +880,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
                         selected={parseSlotDateTime(newSlot.slot_end)}
                         onSelect={(date) => {
                           if (date) {
-                            // Preserve time when changing date
                             const currentDateTime = parseSlotDateTime(newSlot.slot_end);
                             const newDate = new Date(date);
                             newDate.setHours(
