@@ -3,7 +3,6 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 
 interface DataCardProps {
   title: string;
@@ -12,8 +11,6 @@ interface DataCardProps {
   className?: string;
   cardClassName?: string;
   onClick?: () => void;
-  onDelete?: () => void;
-  deletable?: boolean;
 }
 
 export function DataCard({ 
@@ -23,8 +20,6 @@ export function DataCard({
   className, 
   cardClassName,
   onClick,
-  onDelete,
-  deletable = false
 }: DataCardProps) {
   return (
     <Card 
@@ -38,19 +33,6 @@ export function DataCard({
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium">{title}</CardTitle>
-          {deletable && onDelete && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-            >
-              <Trash2 size={16} />
-            </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent className={cn("", className)}>

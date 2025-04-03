@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle, Trash } from "lucide-react";
 import { updateData, setData, removeData, subscribeToData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,7 +26,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface Credential {
+export interface Credential {
   belongs_to_slot: string;
   email: string;
   password: string;
@@ -38,10 +38,6 @@ interface Credential {
 
 interface CredentialsPanelProps {
   credentials: {
-    cred1: Credential;
-    cred2: Credential;
-    cred3: Credential;
-    cred4: Credential;
     [key: string]: Credential;
   };
   slots: Slots;
@@ -273,8 +269,6 @@ export function CredentialsPanel({ credentials: initialCredentials, slots }: Cre
               key={credKey}
               title={credKey}
               className={currentCred.locked === 0 ? "border-green-500/30" : "border-red-500/30"}
-              deletable={true}
-              onDelete={() => handleDeleteCredential(credKey)}
             >
               <div className="space-y-4">
                 {isEditing ? (
@@ -434,6 +428,13 @@ export function CredentialsPanel({ credentials: initialCredentials, slots }: Cre
                     </div>
                     
                     <div className="flex justify-end space-x-2 pt-2">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteCredential(credKey)}
+                      >
+                        <Trash className="mr-2 h-4 w-4" /> Delete
+                      </Button>
                       <Button 
                         variant={currentCred.locked === 0 ? "destructive" : "outline"} 
                         size="sm"
