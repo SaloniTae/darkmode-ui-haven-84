@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Slots } from "@/types/database";
+import { Slots, Slot } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,11 +59,14 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
     }
   };
 
-  const handleInputChange = (slotKey: string, value: string) => {
-    setEditedSlots({
-      ...editedSlots,
-      [slotKey]: value
-    });
+  const handleInputChange = (slotKey: string, field: keyof Slot, value: string | number | boolean) => {
+    setEditedSlots(prev => ({
+      ...prev,
+      [slotKey]: {
+        ...prev[slotKey],
+        [field]: value
+      }
+    }));
   };
 
   const handleAddSlot = async () => {
@@ -73,7 +76,17 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
     }
 
     try {
-      await updateData(`/settings/slots/${newSlotName.trim()}`, newSlotPrice.trim());
+      // Create a proper Slot object
+      const newSlot: Slot = {
+        enabled: true,
+        frequency: "monthly",
+        last_update: new Date().toISOString(),
+        required_amount: Number(newSlotPrice) || 0,
+        slot_end: new Date().toISOString(),
+        slot_start: new Date().toISOString()
+      };
+      
+      await updateData(`/settings/slots/${newSlotName.trim()}`, newSlot);
       toast.success(`Slot ${newSlotName} added successfully`);
       setIsAddingSlot(false);
       setNewSlotName("");
@@ -152,7 +165,7 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Object.entries(slots).map(([slotKey, slotPrice]) => {
+        {Object.entries(slots).map(([slotKey, slotData]) => {
           const isEditing = editingSlot === slotKey;
           
           return (
@@ -177,12 +190,27 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
                   <>
                     <div className="space-y-3">
                       <div className="space-y-1">
-                        <Label htmlFor={`${slotKey}-price`}>Price</Label>
+                        <Label htmlFor={`${slotKey}-price`}>Required Amount</Label>
                         <Input
                           id={`${slotKey}-price`}
-                          value={editedSlots[slotKey]}
-                          onChange={(e) => handleInputChange(slotKey, e.target.value)}
+                          value={editedSlots[slotKey].required_amount}
+                          onChange={(e) => handleInputChange(slotKey, 'required_amount', Number(e.target.value))}
+                          type="number"
                         />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`${slotKey}-enabled`}>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`${slotKey}-enabled`}
+                              checked={editedSlots[slotKey].enabled}
+                              onCheckedChange={(checked) => 
+                                handleInputChange(slotKey, 'enabled', checked === true)
+                              }
+                            />
+                            <span>Enabled</span>
+                          </div>
+                        </Label>
                       </div>
                     </div>
                     
@@ -197,8 +225,12 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
                   <>
                     <div className="space-y-3">
                       <div className="glass-morphism p-3 rounded-md">
-                        <p className="text-sm text-muted-foreground mb-1">Price</p>
-                        <p className="font-medium text-lg">{slotPrice}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Required Amount</p>
+                        <p className="font-medium text-lg">{slotData.required_amount}</p>
+                      </div>
+                      <div className="glass-morphism p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground mb-1">Status</p>
+                        <p className="font-medium text-lg">{slotData.enabled ? 'Enabled' : 'Disabled'}</p>
                       </div>
                     </div>
                     
@@ -235,7 +267,7 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Slot</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a new slot with name and price
+              Create a new slot with name and required amount
             </AlertDialogDescription>
           </AlertDialogHeader>
           
@@ -251,12 +283,13 @@ export function SlotsPanel({ slots, refreshData }: SlotsPanelProps) {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="new-slot-price">Slot Price</Label>
+              <Label htmlFor="new-slot-price">Required Amount</Label>
               <Input
                 id="new-slot-price"
-                placeholder="e.g., 299Rs"
+                placeholder="e.g., 299"
                 value={newSlotPrice}
                 onChange={(e) => setNewSlotPrice(e.target.value)}
+                type="number"
               />
             </div>
           </div>
