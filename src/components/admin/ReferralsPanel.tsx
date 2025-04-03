@@ -6,20 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, Plus, Award, User, Users, Trash2, X } from "lucide-react";
+import { Edit, Save, Award, User, Users, Trash2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { updateData } from "@/lib/firebase";
+import { updateData, removeData } from "@/lib/firebaseService";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmationDialog } from "./ConfirmationDialog";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ReferralsPanelProps {
   referrals: { [key: string]: Referral };
@@ -93,14 +83,14 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
     }
   };
 
-  const handleDeleteReferral = async (userId: string) => {
+  const handleDeleteReferral = async () => {
     try {
-      await updateData(`/referrals/${userId}`, null);
+      await removeData(`/referrals/${deleteConfirmation.userId}`);
       toast.success("Referral deleted successfully");
-      setDeleteConfirmation({open: false, userId: ""});
     } catch (error) {
       console.error("Error deleting referral:", error);
       toast.error("Failed to delete referral");
+      throw error;
     }
   };
 
@@ -419,32 +409,17 @@ export function ReferralsPanel({ referrals, referralSettings, freeTrialClaims }:
       )}
       
       {/* Delete Confirmation Dialog */}
-      <AlertDialog 
+      <ConfirmationDialog 
         open={deleteConfirmation.open} 
         onOpenChange={(open) => {
           if (!open) {
             setDeleteConfirmation({...deleteConfirmation, open: false});
           }
         }}
-      >
-        <AlertDialogContent className="bg-background">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Referral?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the referral for user ID: {deleteConfirmation.userId}. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDeleteReferral(deleteConfirmation.userId)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete Referral?"
+        description={`This will permanently delete the referral for user ID: ${deleteConfirmation.userId}. This action cannot be undone.`}
+        onConfirm={handleDeleteReferral}
+      />
     </div>
   );
 }

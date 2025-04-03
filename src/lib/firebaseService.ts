@@ -28,8 +28,14 @@ export const createFirebaseService = (platform: 'default' | 'prime' | 'netflix' 
 
   const updateData = async (path: string, data: any) => {
     const dataRef = ref(db, path);
-    await update(dataRef, data);
-    return data;
+    if (data === null) {
+      // If data is null, use remove instead of update
+      await remove(dataRef);
+      return null;
+    } else {
+      await update(dataRef, data);
+      return data;
+    }
   };
 
   const setData = async (path: string, data: any) => {

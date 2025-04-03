@@ -1,35 +1,18 @@
+
 import { useState } from "react";
 import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Search, Calendar, Clock, CheckCircle, AlertCircle, Filter, Edit } from "lucide-react";
+import { Trash2, Search, Calendar, Clock, CheckCircle, AlertCircle, Filter } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { updateData } from "@/lib/firebase";
+import { removeData } from "@/lib/firebaseService";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { format, parse } from "date-fns";
+import { ConfirmationDialog } from "./ConfirmationDialog";
+import { format } from "date-fns";
 
 interface TransactionsPanelProps {
   transactions: Transactions;
@@ -49,8 +32,6 @@ interface ProcessedTransaction {
 export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
-  const [editedData, setEditedData] = useState<any>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; id: string; type: string}>({
     open: false,
     id: "",
@@ -123,51 +104,32 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
 
   const processedTransactions = processTransactions();
 
-  const handleEditTransaction = (transaction: ProcessedTransaction) => {
-    setEditingTransaction(transaction);
-    setEditedData({...transaction.originalData});
-  };
-
-  const handleSaveTransaction = async () => {
-    if (!editingTransaction || !editedData) return;
-    
-    const path = editingTransaction.type === "Regular" 
-      ? `/${editingTransaction.id}` 
-      : `/${editingTransaction.type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${editingTransaction.id}`;
-    
-    try {
-      await updateData(path, editedData);
-      toast.success("Transaction updated successfully");
-      setEditingTransaction(null);
-      setEditedData(null);
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-      toast.error("Failed to update transaction");
-    }
-  };
-
-  const handleDeleteTransaction = async (id: string, type: string) => {
+  const handleDeleteTransaction = async () => {
+    const { id, type } = deleteConfirmation;
     const path = type === "Regular" 
-      ? `/${id}` 
-      : `/${type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${id}`;
+      ? `/transactions/${id}` 
+      : `/transactions/${type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${id}`;
     
     try {
-      await updateData(path, null);
+      await removeData(path);
       toast.success("Transaction deleted successfully");
-      setDeleteConfirmation({open: false, id: "", type: ""});
     } catch (error) {
       console.error("Error deleting transaction:", error);
       toast.error("Failed to delete transaction");
+      throw error;
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
-    if (!editedData) return;
-    
-    setEditedData({
-      ...editedData,
-      [field]: value
-    });
+  const handleDeleteOrderId = async () => {
+    const path = `/used_orderids/${deleteOrderIdConfirmation.orderId}`;
+    try {
+      await removeData(path);
+      toast.success("Order ID deleted successfully");
+    } catch (error) {
+      console.error("Error deleting Order ID:", error);
+      toast.error("Failed to delete Order ID");
+      throw error;
+    }
   };
 
   const formatDateTime = (dateString: string): string => {
@@ -293,14 +255,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
                         "Unknown"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditTransaction(transaction)}
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
+                      <div className="flex justify-end">
                         <Button 
                           variant="destructive" 
                           size="sm"
@@ -361,140 +316,31 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         </div>
       </div>
       
-      {editingTransaction && editedData && (
-        <Dialog open={!!editingTransaction} onOpenChange={(open) => {
-          if (!open) {
-            setEditingTransaction(null);
-            setEditedData(null);
-          }
-        }}>
-          <DialogContent className="bg-background">
-            <DialogHeader>
-              <DialogTitle>Edit Transaction</DialogTitle>
-              <DialogDescription>
-                Update the details for transaction ID: {editingTransaction.id}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="slot-id">Slot ID</Label>
-                <Input
-                  id="slot-id"
-                  value={editedData.slot_id || ""}
-                  onChange={(e) => handleInputChange('slot_id', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="start-time">Start Time</Label>
-                  <Input
-                    id="start-time"
-                    value={editedData.start_time || ""}
-                    onChange={(e) => handleInputChange('start_time', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="end-time">End Time</Label>
-                  <Input
-                    id="end-time"
-                    value={editedData.end_time || ""}
-                    onChange={(e) => handleInputChange('end_time', e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="approved-at">Approval Time</Label>
-                <Input
-                  id="approved-at"
-                  value={editedData.approved_at || ""}
-                  onChange={(e) => handleInputChange('approved_at', e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setEditingTransaction(null);
-                setEditedData(null);
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveTransaction}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-      
-      <AlertDialog 
+      {/* Delete Transaction Confirmation Dialog */}
+      <ConfirmationDialog 
         open={deleteConfirmation.open} 
         onOpenChange={(open) => {
           if (!open) {
             setDeleteConfirmation({...deleteConfirmation, open: false});
           }
         }}
-      >
-        <AlertDialogContent className="bg-background">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the transaction ID: {deleteConfirmation.id}. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDeleteTransaction(deleteConfirmation.id, deleteConfirmation.type)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete Transaction?"
+        description={`This will permanently delete the transaction ID: ${deleteConfirmation.id}. This action cannot be undone.`}
+        onConfirm={handleDeleteTransaction}
+      />
       
-      <AlertDialog 
+      {/* Delete Order ID Confirmation Dialog */}
+      <ConfirmationDialog 
         open={deleteOrderIdConfirmation.open} 
         onOpenChange={(open) => {
           if (!open) {
             setDeleteOrderIdConfirmation({...deleteOrderIdConfirmation, open: false});
           }
         }}
-      >
-        <AlertDialogContent className="bg-background">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Order ID?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the Order ID: {deleteOrderIdConfirmation.orderId}. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                const path = `/used_orderids/${deleteOrderIdConfirmation.orderId}`;
-                updateData(path, null)
-                  .then(() => {
-                    toast.success("Order ID deleted successfully");
-                    setDeleteOrderIdConfirmation({open: false, orderId: ""});
-                  })
-                  .catch((error) => {
-                    console.error("Error deleting Order ID:", error);
-                    toast.error("Failed to delete Order ID");
-                  });
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete Order ID?"
+        description={`This will permanently delete the Order ID: ${deleteOrderIdConfirmation.orderId}. This action cannot be undone.`}
+        onConfirm={handleDeleteOrderId}
+      />
     </div>
   );
 }

@@ -16,8 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { updateData, removeData, setData } from "@/lib/firebase";
+import { updateData, removeData, setData } from "@/lib/firebaseService";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "./ConfirmationDialog";
 
 interface UsersPanelProps {
   users: { [key: string]: boolean };
@@ -57,12 +58,8 @@ export function UsersPanel({ users }: UsersPanelProps) {
     } catch (error) {
       console.error("Error adding user:", error);
       toast.error("Failed to add user");
+      throw error;
     }
-  };
-  
-  const confirmDeleteUser = (userId: string) => {
-    setSelectedUser(userId);
-    setIsConfirmingDelete(true);
   };
   
   const handleDeleteUser = async () => {
@@ -76,12 +73,10 @@ export function UsersPanel({ users }: UsersPanelProps) {
       const updatedUsers = {...localUsers};
       delete updatedUsers[selectedUser];
       setLocalUsers(updatedUsers);
-      
-      setIsConfirmingDelete(false);
-      setSelectedUser(null);
     } catch (error) {
       console.error("Error removing user:", error);
       toast.error("Failed to remove user");
+      throw error;
     }
   };
   
@@ -176,7 +171,10 @@ export function UsersPanel({ users }: UsersPanelProps) {
                           <Button 
                             variant="destructive" 
                             size="sm"
-                            onClick={() => confirmDeleteUser(userId)}
+                            onClick={() => {
+                              setSelectedUser(userId);
+                              setIsConfirmingDelete(true);
+                            }}
                           >
                             <UserMinus className="h-4 w-4 mr-1" /> Remove
                           </Button>
@@ -230,23 +228,13 @@ export function UsersPanel({ users }: UsersPanelProps) {
       </AlertDialog>
       
       {/* Confirm Delete Dialog */}
-      <AlertDialog open={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Removal</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove user {selectedUser}?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground">
-              <Ban className="h-4 w-4 mr-2" /> Remove User
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog 
+        open={isConfirmingDelete} 
+        onOpenChange={setIsConfirmingDelete}
+        title="Confirm Removal"
+        description={`Are you sure you want to remove user ${selectedUser}? This action cannot be undone.`}
+        onConfirm={handleDeleteUser}
+      />
     </div>
   );
 }

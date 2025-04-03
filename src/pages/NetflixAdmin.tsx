@@ -10,7 +10,7 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchNetflixData, subscribeToNetflixData } from "@/lib/firebase-netflix";
+import { fetchNetflixData, subscribeToNetflixData } from "@/lib/firebaseService";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 

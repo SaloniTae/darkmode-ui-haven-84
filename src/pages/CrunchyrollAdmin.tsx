@@ -11,7 +11,7 @@ import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
-import { fetchData, subscribeToData } from "@/lib/firebase";
+import { fetchData, subscribeToData } from "@/lib/firebaseService";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";

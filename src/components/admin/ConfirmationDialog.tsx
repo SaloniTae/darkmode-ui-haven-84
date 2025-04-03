@@ -9,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -25,6 +27,21 @@ export function ConfirmationDialog({
   description,
   onConfirm
 }: ConfirmationDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setIsLoading(true);
+      await onConfirm();
+    } catch (error) {
+      console.error("Confirmation action failed:", error);
+    } finally {
+      setIsLoading(false);
+      // Close the dialog after completion
+      onOpenChange(false);
+    }
+  };
+
   return (
     <AlertDialog 
       open={open} 
@@ -38,13 +55,19 @@ export function ConfirmationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={async () => {
-              await onConfirm();
-            }}
+            onClick={handleConfirm}
+            disabled={isLoading}
           >
-            Confirm
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Confirm"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

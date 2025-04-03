@@ -10,7 +10,7 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchPrimeData, subscribeToPrimeData } from "@/lib/firebase-prime";
+import { fetchPrimeData, subscribeToPrimeData } from "@/lib/firebaseService";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
