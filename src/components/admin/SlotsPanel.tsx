@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateData, setData, removeData } from "@/lib/firebase";
 import { format, parse, addDays } from "date-fns";
-import { CalendarIcon, CheckCircle, Clock, XCircle, Edit, Save, PlusCircle, Trash2 } from "lucide-react";
+import { CalendarIcon, Clock, DollarSign, Edit, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   AlertDialog,
@@ -23,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface SlotsPanelProps {
   slots: Slots;
@@ -162,7 +164,7 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
   
   const formatDateTime = (dateString: string): string => {
     try {
-      return format(parse(dateString, 'yyyy-MM-dd HH:mm:ss', new Date()), 'PPP p');
+      return format(parse(dateString, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
     } catch (e) {
       return dateString;
     }
@@ -213,44 +215,6 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
     }
   };
   
-  const handleNewSlotDateChange = (type: 'start' | 'end', date: Date | undefined) => {
-    if (!date) return;
-    
-    if (type === 'start') {
-      // Maintain the time part from the existing start time
-      try {
-        const existingDate = parse(newSlot.slot_start, 'yyyy-MM-dd HH:mm:ss', new Date());
-        const hours = existingDate.getHours();
-        const minutes = existingDate.getMinutes();
-        const seconds = existingDate.getSeconds();
-        
-        date.setHours(hours, minutes, seconds);
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        
-        handleNewSlotChange('slot_start', formattedDate);
-      } catch (e) {
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        handleNewSlotChange('slot_start', formattedDate);
-      }
-    } else {
-      // Maintain the time part from the existing end time
-      try {
-        const existingDate = parse(newSlot.slot_end, 'yyyy-MM-dd HH:mm:ss', new Date());
-        const hours = existingDate.getHours();
-        const minutes = existingDate.getMinutes();
-        const seconds = existingDate.getSeconds();
-        
-        date.setHours(hours, minutes, seconds);
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        
-        handleNewSlotChange('slot_end', formattedDate);
-      } catch (e) {
-        const formattedDate = format(date, 'yyyy-MM-dd HH:mm:ss');
-        handleNewSlotChange('slot_end', formattedDate);
-      }
-    }
-  };
-  
   const handleDateChange = (slotKey: string, type: 'start' | 'end', date: Date | undefined) => {
     if (!date) return;
     
@@ -291,12 +255,23 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
     }
   };
   
+  // Format time period
+  const formatTimePeriod = (startDate: string, endDate: string): string => {
+    try {
+      const start = format(parse(startDate, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
+      const end = format(parse(endDate, 'yyyy-MM-dd HH:mm:ss', new Date()), 'MMM d, yyyy hh:mm a');
+      return `${start} - ${end}`;
+    } catch (e) {
+      return `${startDate} - ${endDate}`;
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Slots Management</h2>
         <Button onClick={() => setIsAddingSlot(true)}>
-          <PlusCircle className="h-4 w-4 mr-2" /> Add Slot
+          <Plus className="h-4 w-4 mr-2" /> Add Slot
         </Button>
       </div>
       
@@ -305,193 +280,193 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
           const isEditing = editingSlot === slotKey;
           const currentSlot = isEditing ? editedSlots[slotKey] : slot;
           
-          return (
-            <DataCard
-              key={slotKey}
-              title={slotKey}
-              className={currentSlot.enabled ? "border-green-500/30" : "border-red-500/30"}
-            >
-              <div className="space-y-4">
-                {isEditing ? (
-                  <>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={currentSlot.enabled}
-                          onCheckedChange={(checked) => handleInputChange(slotKey, 'enabled', checked)}
-                          id={`${slotKey}-enabled`}
-                        />
-                        <Label htmlFor={`${slotKey}-enabled`}>{currentSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <Label htmlFor={`${slotKey}-frequency`}>Frequency</Label>
-                        <Select
-                          value={currentSlot.frequency}
-                          onValueChange={(value) => handleInputChange(slotKey, 'frequency', value)}
-                        >
-                          <SelectTrigger id={`${slotKey}-frequency`}>
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border border-input">
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="3day">3 Days</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <Label htmlFor={`${slotKey}-required-amount`}>Required Amount</Label>
-                        <Input
-                          id={`${slotKey}-required-amount`}
-                          type="number"
-                          value={currentSlot.required_amount}
-                          onChange={(e) => handleInputChange(slotKey, 'required_amount', parseInt(e.target.value))}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <Label htmlFor={`${slotKey}-start-date`}>Start Date</Label>
-                          <div className="flex">
-                            <Input
-                              id={`${slotKey}-start-date`}
-                              value={currentSlot.slot_start}
-                              onChange={(e) => handleInputChange(slotKey, 'slot_start', e.target.value)}
-                              className="flex-1"
-                            />
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="ml-2">
-                                  <CalendarIcon className="h-4 w-4" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 bg-popover">
-                                <Calendar
-                                  mode="single"
-                                  selected={startDate}
-                                  onSelect={(date) => handleDateChange(slotKey, 'start', date)}
-                                  initialFocus
-                                  className="bg-background"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label htmlFor={`${slotKey}-end-date`}>End Date</Label>
-                          <div className="flex">
-                            <Input
-                              id={`${slotKey}-end-date`}
-                              value={currentSlot.slot_end}
-                              onChange={(e) => handleInputChange(slotKey, 'slot_end', e.target.value)}
-                              className="flex-1"
-                            />
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="ml-2">
-                                  <CalendarIcon className="h-4 w-4" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 bg-popover">
-                                <Calendar
-                                  mode="single"
-                                  selected={endDate}
-                                  onSelect={(date) => handleDateChange(slotKey, 'end', date)}
-                                  initialFocus
-                                  className="bg-background"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end space-x-2 pt-2">
-                      <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
-                      <Button onClick={() => handleSaveSlot(slotKey)}>
-                        <Save className="mr-2 h-4 w-4" /> Save
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {currentSlot.enabled ? (
-                          <>
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <span className="text-sm font-medium">Enabled</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-5 w-5 text-red-500" />
-                            <span className="text-sm font-medium">Disabled</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span className="text-sm">{currentSlot.frequency}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="glass-morphism p-3 rounded-md">
-                      <p className="text-sm text-muted-foreground mb-1">Required Amount</p>
-                      <p className="font-medium text-lg">₹{currentSlot.required_amount}</p>
+          if (isEditing) {
+            return (
+              <Card key={slotKey} className="overflow-hidden">
+                <CardContent className="p-6 space-y-4">
+                  <h3 className="text-2xl font-semibold">{slotKey}</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={currentSlot.enabled}
+                        onCheckedChange={(checked) => handleInputChange(slotKey, 'enabled', checked)}
+                      />
+                      <Label>{currentSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
                     </div>
                     
                     <div className="space-y-2">
-                      <div className="glass-morphism p-3 rounded-md">
-                        <p className="text-sm text-muted-foreground mb-1">Start Time</p>
-                        <p className="font-medium text-sm">{formatDateTime(currentSlot.slot_start)}</p>
-                      </div>
-                      
-                      <div className="glass-morphism p-3 rounded-md">
-                        <p className="text-sm text-muted-foreground mb-1">End Time</p>
-                        <p className="font-medium text-sm">{formatDateTime(currentSlot.slot_end)}</p>
+                      <Label>Frequency</Label>
+                      <Select
+                        value={currentSlot.frequency}
+                        onValueChange={(value) => handleInputChange(slotKey, 'frequency', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="3day">3 Days</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Required Amount</Label>
+                      <Input
+                        type="number"
+                        value={currentSlot.required_amount}
+                        onChange={(e) => handleInputChange(slotKey, 'required_amount', parseInt(e.target.value))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <div className="flex">
+                        <Input
+                          value={currentSlot.slot_start}
+                          onChange={(e) => handleInputChange(slotKey, 'slot_start', e.target.value)}
+                          className="flex-1"
+                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="ml-2">
+                              <CalendarIcon className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={startDate}
+                              onSelect={(date) => handleDateChange(slotKey, 'start', date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                     
-                    <div className="flex justify-end space-x-2 pt-2">
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => confirmDeleteSlot(slotKey)}
-                      >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                      </Button>
-                      <Button 
-                        variant={currentSlot.enabled ? "destructive" : "outline"} 
-                        size="sm"
-                        onClick={() => handleToggleSlot(slotKey, !currentSlot.enabled)}
-                      >
-                        {currentSlot.enabled ? "Disable" : "Enable"}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditSlot(slotKey)}
-                      >
-                        <Edit className="mr-1 h-3.5 w-3.5" /> Edit
-                      </Button>
+                    <div className="space-y-2">
+                      <Label>End Date</Label>
+                      <div className="flex">
+                        <Input
+                          value={currentSlot.slot_end}
+                          onChange={(e) => handleInputChange(slotKey, 'slot_end', e.target.value)}
+                          className="flex-1"
+                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="ml-2">
+                              <CalendarIcon className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={endDate}
+                              onSelect={(date) => handleDateChange(slotKey, 'end', date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
-            </DataCard>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                    <Button onClick={() => handleSaveSlot(slotKey)}>Save</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+          
+          return (
+            <Card key={slotKey} className="overflow-hidden bg-card">
+              <CardContent className="p-6">
+                <h3 className="text-2xl font-semibold mb-4">{slotKey}</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${currentSlot.enabled ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-lg">{currentSlot.enabled ? 'Enabled' : 'Disabled'}</span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-3">
+                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Frequency</p>
+                        <p className="text-lg">{currentSlot.frequency}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-3">
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Required Amount</p>
+                        <p className="text-lg">₹{currentSlot.required_amount}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-3">
+                      <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Time Period</p>
+                        <p className="text-sm">{formatTimePeriod(currentSlot.slot_start, currentSlot.slot_end)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="pt-2">
+                    <p className="text-sm text-muted-foreground">Last Updated</p>
+                    <p>{formatDateTime(currentSlot.last_update)}</p>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button 
+                      variant="destructive"
+                      onClick={() => confirmDeleteSlot(slotKey)}
+                      className="px-4"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                    </Button>
+                    
+                    <Button 
+                      variant={currentSlot.enabled ? "destructive" : "success"}
+                      onClick={() => handleToggleSlot(slotKey, !currentSlot.enabled)}
+                      className="px-6"
+                    >
+                      {currentSlot.enabled ? "Disable" : "Enable"}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleEditSlot(slotKey)}
+                      className="px-4"
+                    >
+                      <Edit className="h-4 w-4 mr-2" /> Edit
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
       
       {/* Add Slot Dialog */}
       <AlertDialog open={isAddingSlot} onOpenChange={setIsAddingSlot}>
-        <AlertDialogContent className="bg-background">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Slot</AlertDialogTitle>
             <AlertDialogDescription>
@@ -501,9 +476,8 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-slot-key">Slot Key</Label>
+              <Label>Slot Key</Label>
               <Input
-                id="new-slot-key"
                 placeholder="e.g., slot_4"
                 value={newSlotKey}
                 onChange={(e) => setNewSlotKey(e.target.value)}
@@ -514,21 +488,20 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
               <Switch
                 checked={newSlot.enabled}
                 onCheckedChange={(checked) => handleNewSlotChange('enabled', checked)}
-                id="new-slot-enabled"
               />
-              <Label htmlFor="new-slot-enabled">{newSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
+              <Label>{newSlot.enabled ? 'Enabled' : 'Disabled'}</Label>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="new-slot-frequency">Frequency</Label>
+              <Label>Frequency</Label>
               <Select
                 value={newSlot.frequency}
                 onValueChange={(value) => handleNewSlotChange('frequency', value)}
               >
-                <SelectTrigger id="new-slot-frequency">
+                <SelectTrigger>
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
-                <SelectContent className="bg-background border border-input">
+                <SelectContent>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="3day">3 Days</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
@@ -538,71 +511,28 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="new-slot-required-amount">Required Amount</Label>
+              <Label>Required Amount</Label>
               <Input
-                id="new-slot-required-amount"
                 type="number"
                 value={newSlot.required_amount}
                 onChange={(e) => handleNewSlotChange('required_amount', parseInt(e.target.value))}
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-slot-start-date">Start Date</Label>
-                <div className="flex">
-                  <Input
-                    id="new-slot-start-date"
-                    value={newSlot.slot_start}
-                    onChange={(e) => handleNewSlotChange('slot_start', e.target.value)}
-                    className="flex-1"
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="ml-2">
-                        <CalendarIcon className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-popover">
-                      <Calendar
-                        mode="single"
-                        selected={parse(newSlot.slot_start, 'yyyy-MM-dd HH:mm:ss', new Date())}
-                        onSelect={(date) => handleNewSlotDateChange('start', date)}
-                        initialFocus
-                        className="bg-background"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="new-slot-end-date">End Date</Label>
-                <div className="flex">
-                  <Input
-                    id="new-slot-end-date"
-                    value={newSlot.slot_end}
-                    onChange={(e) => handleNewSlotChange('slot_end', e.target.value)}
-                    className="flex-1"
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="ml-2">
-                        <CalendarIcon className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-popover">
-                      <Calendar
-                        mode="single"
-                        selected={parse(newSlot.slot_end, 'yyyy-MM-dd HH:mm:ss', new Date())}
-                        onSelect={(date) => handleNewSlotDateChange('end', date)}
-                        initialFocus
-                        className="bg-background"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input
+                value={newSlot.slot_start}
+                onChange={(e) => handleNewSlotChange('slot_start', e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>End Date</Label>
+              <Input
+                value={newSlot.slot_end}
+                onChange={(e) => handleNewSlotChange('slot_end', e.target.value)}
+              />
             </div>
           </div>
           
@@ -624,7 +554,7 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
           }
         }}
       >
-        <AlertDialogContent className="bg-background">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Slot</AlertDialogTitle>
             <AlertDialogDescription>
