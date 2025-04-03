@@ -15,7 +15,7 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: "dark",
+  theme: "system",
   setTheme: () => null,
   resolvedTheme: "dark",
 };
@@ -44,7 +44,7 @@ const setStorageItem = (key: string, value: any): void => {
 
 export function ThemeProvider({
   children,
-  defaultTheme = "dark",
+  defaultTheme = "system",
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     return getStorageItem("theme", defaultTheme) as Theme;

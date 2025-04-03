@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Transactions } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { updateData } from "@/lib/firebase";
+import { updateData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,6 +52,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
   const [filterType, setFilterType] = useState<string>("all");
   const [editingTransaction, setEditingTransaction] = useState<ProcessedTransaction | null>(null);
   const [editedData, setEditedData] = useState<any>(null);
+  const [localTransactions, setLocalTransactions] = useState<Transactions>({...transactions});
+  const [localUsedOrderIds, setLocalUsedOrderIds] = useState<{[key: string]: boolean}>({...usedOrderIds});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; id: string; type: string}>({
     open: false,
     id: "",
@@ -61,13 +64,19 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
     orderId: ""
   });
   
+  // Update local state when props change
+  useEffect(() => {
+    setLocalTransactions({...transactions});
+    setLocalUsedOrderIds({...usedOrderIds});
+  }, [transactions, usedOrderIds]);
+  
   const processTransactions = (): ProcessedTransaction[] => {
     const processedTransactions: ProcessedTransaction[] = [];
     
     const regularTransactions: Record<string, any> = {};
     const specialTransactions: Record<string, Record<string, any>> = {};
     
-    Object.entries(transactions).forEach(([key, value]) => {
+    Object.entries(localTransactions).forEach(([key, value]) => {
       if (key === "FTRIAL-ID" || key === "REF-ID") {
         specialTransactions[key] = value as Record<string, any>;
       } else {
@@ -137,6 +146,24 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
     
     try {
       await updateData(path, editedData);
+      
+      // Update local state
+      if (editingTransaction.type === "Regular") {
+        setLocalTransactions(prev => ({
+          ...prev,
+          [editingTransaction.id]: editedData
+        }));
+      } else {
+        const typeKey = editingTransaction.type === "Free Trial" ? "FTRIAL-ID" : "REF-ID";
+        setLocalTransactions(prev => ({
+          ...prev,
+          [typeKey]: {
+            ...prev[typeKey],
+            [editingTransaction.id]: editedData
+          }
+        }));
+      }
+      
       toast.success("Transaction updated successfully");
       setEditingTransaction(null);
       setEditedData(null);
@@ -152,12 +179,46 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
       : `/${type === "Free Trial" ? "FTRIAL-ID" : "REF-ID"}/${id}`;
     
     try {
-      await updateData(path, null);
+      await removeData(path);
+      
+      // Update local state
+      if (type === "Regular") {
+        const updatedTransactions = { ...localTransactions };
+        delete updatedTransactions[id];
+        setLocalTransactions(updatedTransactions);
+      } else {
+        const typeKey = type === "Free Trial" ? "FTRIAL-ID" : "REF-ID";
+        const updatedTransactions = { ...localTransactions };
+        if (updatedTransactions[typeKey]) {
+          const updatedType = { ...updatedTransactions[typeKey] };
+          delete updatedType[id];
+          updatedTransactions[typeKey] = updatedType;
+          setLocalTransactions(updatedTransactions);
+        }
+      }
+      
       toast.success("Transaction deleted successfully");
       setDeleteConfirmation({open: false, id: "", type: ""});
     } catch (error) {
       console.error("Error deleting transaction:", error);
       toast.error("Failed to delete transaction");
+    }
+  };
+
+  const handleDeleteOrderId = async (orderId: string) => {
+    try {
+      await removeData(`/used_orderids/${orderId}`);
+      
+      // Update local state
+      const updatedOrderIds = { ...localUsedOrderIds };
+      delete updatedOrderIds[orderId];
+      setLocalUsedOrderIds(updatedOrderIds);
+      
+      toast.success("Order ID deleted successfully");
+      setDeleteOrderIdConfirmation({open: false, orderId: ""});
+    } catch (error) {
+      console.error("Error deleting Order ID:", error);
+      toast.error("Failed to delete Order ID");
     }
   };
 
@@ -212,7 +273,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <DataCard title="Total Transactions" className="text-center">
           <div className="py-4">
             <span className="text-3xl font-bold">
-              {Object.keys(transactions).filter(key => key !== "FTRIAL-ID" && key !== "REF-ID").length}
+              {Object.keys(localTransactions).filter(key => key !== "FTRIAL-ID" && key !== "REF-ID").length}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Regular transactions</p>
           </div>
@@ -221,8 +282,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <DataCard title="Free Trials" className="text-center">
           <div className="py-4">
             <span className="text-3xl font-bold">
-              {transactions["FTRIAL-ID"] && 
-               Object.keys(transactions["FTRIAL-ID"]).filter(id => id !== "FTRIAL-ID-OTTONRENT").length}
+              {localTransactions["FTRIAL-ID"] && 
+               Object.keys(localTransactions["FTRIAL-ID"]).filter(id => id !== "FTRIAL-ID-OTTONRENT").length}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Total claimed</p>
           </div>
@@ -231,8 +292,8 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <DataCard title="Referral Redemptions" className="text-center">
           <div className="py-4">
             <span className="text-3xl font-bold">
-              {transactions["REF-ID"] ? 
-               Object.keys(transactions["REF-ID"]).filter(key => key !== "REF-ID-OTTONRENT").length : 
+              {localTransactions["REF-ID"] ? 
+               Object.keys(localTransactions["REF-ID"]).filter(key => key !== "REF-ID-OTTONRENT").length : 
                0}
             </span>
             <p className="text-muted-foreground text-sm mt-1">Point redemptions</p>
@@ -333,7 +394,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
         <div className="glass-morphism rounded-lg overflow-hidden">
           <div className="overflow-auto p-4" style={{ maxHeight: '200px' }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {Object.entries(usedOrderIds).map(([orderId, used]) => (
+              {Object.entries(localUsedOrderIds).map(([orderId, used]) => (
                 <div key={orderId} className="flex items-center justify-between p-2 rounded-md bg-white/5">
                   <span className="text-sm truncate mr-2">{orderId}</span>
                   <div className="flex gap-1">
@@ -477,18 +538,7 @@ export function TransactionsPanel({ transactions, usedOrderIds }: TransactionsPa
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                const path = `/used_orderids/${deleteOrderIdConfirmation.orderId}`;
-                updateData(path, null)
-                  .then(() => {
-                    toast.success("Order ID deleted successfully");
-                    setDeleteOrderIdConfirmation({open: false, orderId: ""});
-                  })
-                  .catch((error) => {
-                    console.error("Error deleting Order ID:", error);
-                    toast.error("Failed to delete Order ID");
-                  });
-              }}
+              onClick={() => handleDeleteOrderId(deleteOrderIdConfirmation.orderId)}
             >
               Delete
             </AlertDialogAction>

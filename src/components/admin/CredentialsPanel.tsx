@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slots } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { updateData, setData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -50,11 +50,16 @@ interface CredentialsPanelProps {
 export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) {
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
   const [editedCredentials, setEditedCredentials] = useState({ ...credentials });
+  const [localCredentials, setLocalCredentials] = useState({ ...credentials });
   const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean; action: () => Promise<void>; title: string; description: string}>({
     open: false,
     action: async () => {},
     title: "",
     description: ""
+  });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{open: boolean; credKey: string}>({
+    open: false,
+    credKey: ""
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isAddingCredential, setIsAddingCredential] = useState(false);
@@ -69,6 +74,12 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   });
   const [newCredentialKey, setNewCredentialKey] = useState("");
 
+  // Update local state when props change
+  useEffect(() => {
+    setLocalCredentials({ ...credentials });
+    setEditedCredentials({ ...credentials });
+  }, [credentials]);
+
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
     
@@ -82,7 +93,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const handleCancelEdit = () => {
-    setEditedCredentials({ ...credentials });
+    setEditedCredentials({ ...localCredentials });
     setEditingCredential(null);
     setSelectedDate(undefined);
   };
@@ -91,6 +102,13 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     try {
       await updateData(`/${credKey}`, editedCredentials[credKey as keyof typeof credentials]);
       toast.success(`${credKey} updated successfully`);
+      
+      // Update local state
+      setLocalCredentials(prev => ({
+        ...prev,
+        [credKey]: editedCredentials[credKey as keyof typeof credentials]
+      }));
+      
       setEditingCredential(null);
       setSelectedDate(undefined);
     } catch (error) {
@@ -110,19 +128,27 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const handleToggleLock = async (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = localCredentials[credKey as keyof typeof credentials];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     try {
       await updateData(`/${credKey}/locked`, newLockedValue);
       
-      setEditedCredentials({
-        ...editedCredentials,
-        [credKey]: {
-          ...currentCred,
-          locked: newLockedValue
-        }
-      });
+      // Update both edited and local state
+      const updatedCred = {
+        ...currentCred,
+        locked: newLockedValue
+      };
+      
+      setLocalCredentials(prev => ({
+        ...prev,
+        [credKey]: updatedCred
+      }));
+      
+      setEditedCredentials(prev => ({
+        ...prev,
+        [credKey]: updatedCred
+      }));
       
       toast.success(`${credKey} ${newLockedValue === 1 ? 'locked' : 'unlocked'} successfully`);
     } catch (error) {
@@ -132,7 +158,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const toggleLockState = (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = localCredentials[credKey as keyof typeof credentials];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     setConfirmationDialog({
@@ -141,6 +167,34 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       title: `${newLockedValue === 1 ? 'Lock' : 'Unlock'} ${credKey}`,
       description: `Are you sure you want to ${newLockedValue === 1 ? 'lock' : 'unlock'} ${credKey}?`
     });
+  };
+
+  const confirmDeleteCredential = (credKey: string) => {
+    setDeleteConfirmation({
+      open: true,
+      credKey
+    });
+  };
+
+  const handleDeleteCredential = async () => {
+    const { credKey } = deleteConfirmation;
+    if (!credKey) return;
+    
+    try {
+      await removeData(`/${credKey}`);
+      toast.success(`${credKey} deleted successfully`);
+      
+      // Update local state
+      const updatedCredentials = { ...localCredentials };
+      delete updatedCredentials[credKey as keyof typeof credentials];
+      setLocalCredentials(updatedCredentials);
+      setEditedCredentials(updatedCredentials);
+      
+      setDeleteConfirmation({ open: false, credKey: "" });
+    } catch (error) {
+      console.error(`Error deleting ${credKey}:`, error);
+      toast.error(`Failed to delete ${credKey}`);
+    }
   };
 
   const formatDate = (dateString: string): string => {
@@ -184,11 +238,16 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       await setData(`/${newCredentialKey}`, newCredential);
       toast.success(`${newCredentialKey} created successfully`);
       
-      // Update local state with new credential
-      setEditedCredentials({
-        ...editedCredentials,
+      // Update local state immediately
+      setLocalCredentials(prev => ({
+        ...prev,
         [newCredentialKey]: newCredential
-      });
+      }));
+      
+      setEditedCredentials(prev => ({
+        ...prev,
+        [newCredentialKey]: newCredential
+      }));
       
       // Reset form and close dialog
       setNewCredentialKey("");
@@ -218,9 +277,11 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Object.entries(credentials).map(([credKey, cred]) => {
+        {Object.entries(localCredentials).map(([credKey, cred]) => {
           const isEditing = editingCredential === credKey;
-          const currentCred = editedCredentials[credKey as keyof typeof credentials];
+          const currentCred = isEditing 
+            ? editedCredentials[credKey as keyof typeof credentials] 
+            : cred;
           
           return (
             <DataCard
@@ -387,6 +448,13 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                     
                     <div className="flex justify-end space-x-2 pt-2">
                       <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => confirmDeleteCredential(credKey)}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                      </Button>
+                      <Button 
                         variant={currentCred.locked === 0 ? "destructive" : "outline"} 
                         size="sm"
                         onClick={() => toggleLockState(credKey)}
@@ -438,6 +506,34 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
               }}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteConfirmation.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteConfirmation({open: false, credKey: ""});
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Credential</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deleteConfirmation.credKey}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCredential}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
