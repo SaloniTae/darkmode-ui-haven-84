@@ -35,12 +35,12 @@ export function DeleteConfirmationDialog({
   const handleDeleteSlot = async (slotKey: string) => {
     try {
       await deleteData(`/settings/slots/${slotKey}`);
-      toast.success(`${slotKey} deleted successfully`);
+      toast.success(`Slot "${slotKey}" deleted successfully`);
       onOpenChange(false);
       await refreshData();
     } catch (error) {
-      console.error(`Error deleting ${slotKey}:`, error);
-      toast.error(`Failed to delete ${slotKey}`);
+      console.error(`Error deleting slot "${slotKey}":`, error);
+      toast.error(`Failed to delete slot "${slotKey}"`);
     }
   };
   

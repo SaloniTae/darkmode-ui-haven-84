@@ -1,5 +1,5 @@
 
-import { getDatabase, ref, get, set, child, update, remove } from "firebase/database";
+import { getDatabase, ref, get, child, update, remove, set } from "firebase/database";
 import { initializeApp } from "firebase/app";
 
 // Initialize Firebase
@@ -12,6 +12,11 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+// Make sure all required config values are present
+if (!firebaseConfig.projectId || !firebaseConfig.databaseURL) {
+  console.error("Missing required Firebase configuration values. Check your environment variables.");
+}
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
