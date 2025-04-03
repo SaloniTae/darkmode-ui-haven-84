@@ -10,7 +10,7 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchNetflixData } from "@/lib/firebase-netflix";
+import { fetchNetflixData, subscribeToNetflixData } from "@/lib/firebase-netflix";
 import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 
@@ -22,8 +22,8 @@ export default function NetflixAdmin() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const data = await fetchNetflixData("/");
-        setDbData(data);
+        const initialData = await fetchNetflixData("/");
+        setDbData(initialData);
         toast.success("Netflix database loaded successfully");
       } catch (error) {
         console.error("Error loading Netflix database:", error);
@@ -32,7 +32,18 @@ export default function NetflixAdmin() {
         setLoading(false);
       }
     };
+    
     loadData();
+    
+    // Set up real-time subscription
+    const unsubscribe = subscribeToNetflixData("/", (data) => {
+      if (data) {
+        setDbData(data);
+      }
+    });
+    
+    // Clean up subscription on component unmount
+    return () => unsubscribe();
   }, []);
 
   if (loading) {
@@ -77,7 +88,13 @@ export default function NetflixAdmin() {
             cred1: dbData.cred1,
             cred2: dbData.cred2,
             cred3: dbData.cred3,
-            cred4: dbData.cred4
+            cred4: dbData.cred4,
+            ...(dbData.cred5 ? { cred5: dbData.cred5 } : {}),
+            ...(dbData.cred6 ? { cred6: dbData.cred6 } : {}),
+            ...(dbData.cred7 ? { cred7: dbData.cred7 } : {}),
+            ...(dbData.cred8 ? { cred8: dbData.cred8 } : {}),
+            ...(dbData.cred9 ? { cred9: dbData.cred9 } : {}),
+            ...(dbData.cred10 ? { cred10: dbData.cred10 } : {})
           }} slots={dbData.settings.slots} />
           </TabsContent>
           

@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle } from "lucide-react";
-import { updateData, setData } from "@/lib/firebase";
+import { Edit, Save, Lock, Unlock, Check, X, CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { updateData, setData, removeData } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Credential {
   belongs_to_slot: string;
@@ -38,10 +39,6 @@ interface Credential {
 
 interface CredentialsPanelProps {
   credentials: {
-    cred1: Credential;
-    cred2: Credential;
-    cred3: Credential;
-    cred4: Credential;
     [key: string]: Credential;
   };
   slots: Slots;
@@ -68,13 +65,15 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     usage_count: 0
   });
   const [newCredentialKey, setNewCredentialKey] = useState("");
+  const [selectedCredentials, setSelectedCredentials] = useState<string[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
     
     // Convert the string date to a Date object for the calendar
     try {
-      const currentCred = editedCredentials[credKey as keyof typeof credentials];
+      const currentCred = editedCredentials[credKey];
       setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
     } catch (e) {
       setSelectedDate(new Date());
@@ -89,7 +88,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
 
   const handleSaveCredential = async (credKey: string) => {
     try {
-      await updateData(`/${credKey}`, editedCredentials[credKey as keyof typeof credentials]);
+      await updateData(`/${credKey}`, editedCredentials[credKey]);
       toast.success(`${credKey} updated successfully`);
       setEditingCredential(null);
       setSelectedDate(undefined);
@@ -103,14 +102,14 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     setEditedCredentials({
       ...editedCredentials,
       [credKey]: {
-        ...editedCredentials[credKey as keyof typeof credentials],
+        ...editedCredentials[credKey],
         [field]: value
       }
     });
   };
 
   const handleToggleLock = async (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     try {
@@ -132,7 +131,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const toggleLockState = (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     setConfirmationDialog({
@@ -184,12 +183,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       await setData(`/${newCredentialKey}`, newCredential);
       toast.success(`${newCredentialKey} created successfully`);
       
-      // Update local state with new credential
-      setEditedCredentials({
-        ...editedCredentials,
-        [newCredentialKey]: newCredential
-      });
-      
       // Reset form and close dialog
       setNewCredentialKey("");
       setNewCredential({
@@ -208,25 +201,72 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     }
   };
 
+  const handleDeleteCredentials = async () => {
+    if (selectedCredentials.length === 0) {
+      toast.error("No credentials selected for deletion");
+      return;
+    }
+
+    try {
+      for (const credKey of selectedCredentials) {
+        await removeData(`/${credKey}`);
+      }
+      toast.success(`${selectedCredentials.length} credential(s) deleted successfully`);
+      setSelectedCredentials([]);
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting credentials:", error);
+      toast.error("Failed to delete some credentials");
+    }
+  };
+
+  const toggleCredentialSelection = (credKey: string) => {
+    setSelectedCredentials(prev => 
+      prev.includes(credKey) 
+        ? prev.filter(key => key !== credKey) 
+        : [...prev, credKey]
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Credentials Management</h2>
-        <Button onClick={() => setIsAddingCredential(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Credential
-        </Button>
+        <div className="flex gap-2">
+          {selectedCredentials.length > 0 && (
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Selected ({selectedCredentials.length})
+            </Button>
+          )}
+          <Button onClick={() => setIsAddingCredential(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Credential
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.entries(credentials).map(([credKey, cred]) => {
           const isEditing = editingCredential === credKey;
-          const currentCred = editedCredentials[credKey as keyof typeof credentials];
+          const currentCred = editedCredentials[credKey];
+          const isSelected = selectedCredentials.includes(credKey);
           
           return (
             <DataCard
               key={credKey}
-              title={credKey}
-              className={currentCred.locked === 0 ? "border-green-500/30" : "border-red-500/30"}
+              title={
+                <div className="flex items-center justify-between">
+                  <span>{credKey}</span>
+                  <Checkbox 
+                    checked={isSelected}
+                    onCheckedChange={() => toggleCredentialSelection(credKey)}
+                    className="ml-2"
+                  />
+                </div>
+              }
+              className={cn(
+                currentCred.locked === 0 ? "border-green-500/30" : "border-red-500/30",
+                isSelected ? "ring-2 ring-primary" : ""
+              )}
             >
               <div className="space-y-4">
                 {isEditing ? (
@@ -386,6 +426,28 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
                     </div>
                     
                     <div className="flex justify-end space-x-2 pt-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setConfirmationDialog({
+                            open: true,
+                            action: async () => {
+                              try {
+                                await removeData(`/${credKey}`);
+                                toast.success(`${credKey} deleted successfully`);
+                              } catch (error) {
+                                console.error(`Error deleting ${credKey}:`, error);
+                                toast.error(`Failed to delete ${credKey}`);
+                              }
+                            },
+                            title: `Delete ${credKey}`,
+                            description: `Are you sure you want to delete ${credKey}? This action cannot be undone.`
+                          });
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </Button>
                       <Button 
                         variant={currentCred.locked === 0 ? "destructive" : "outline"} 
                         size="sm"
@@ -438,6 +500,36 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
               }}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Selected Credentials Dialog */}
+      <AlertDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Selected Credentials</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedCredentials.length} credential(s)? This action cannot be undone.
+              <div className="mt-2">
+                <ScrollArea className="h-[120px] rounded-md border p-2">
+                  <ul>
+                    {selectedCredentials.map(credKey => (
+                      <li key={credKey} className="py-1">{credKey}</li>
+                    ))}
+                  </ul>
+                </ScrollArea>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCredentials}>
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
