@@ -19,7 +19,7 @@ export function MainLayout({ children, className }: MainLayoutProps) {
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground">
         <div className="max-w-7xl mx-auto px-4">
-          &copy; {new Date().getFullYear()} OORverse. All rights reserved.
+          &copy; {new Date().getFullYear()} FirebaseUI. All rights reserved.
         </div>
       </footer>
     </div>

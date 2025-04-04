@@ -12,65 +12,9 @@ import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
 import { fetchData, subscribeToData } from "@/lib/firebaseService";
-import { DatabaseSchema, UIConfig } from "@/types/database";
+import { DatabaseSchema } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-
-// Default UIConfig object that matches the required structure
-const defaultUiConfig: UIConfig = {
-  approve_flow: {
-    account_format: "",
-    gif_url: "",
-    success_text: ""
-  },
-  confirmation_flow: {
-    button_text: "",
-    callback_data: "",
-    caption: "",
-    gif_url: "",
-    photo_url: ""
-  },
-  crunchyroll_screen: {
-    button_text: "",
-    callback_data: "",
-    caption: "",
-    photo_url: ""
-  },
-  freetrial_info: {
-    photo_url: ""
-  },
-  locked_flow: {
-    locked_text: ""
-  },
-  out_of_stock: {
-    gif_url: "",
-    messages: []
-  },
-  phonepe_screen: {
-    caption: "",
-    followup_text: "",
-    photo_url: ""
-  },
-  referral_info: {
-    photo_url: ""
-  },
-  reject_flow: {
-    error_text: "",
-    gif_url: ""
-  },
-  slot_booking: {
-    button_format: "",
-    callback_data: "",
-    caption: "",
-    gif_url: "",
-    photo_url: ""
-  },
-  start_command: {
-    buttons: [],
-    welcome_photo: "",
-    welcome_text: ""
-  }
-};
 
 export default function CrunchyrollAdmin() {
   const [loading, setLoading] = useState(false);
@@ -82,29 +26,33 @@ export default function CrunchyrollAdmin() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      // Initial data load
       const data = await fetchData("/");
       setDbData(data);
-      toast.success("Database loaded successfully");
+      toast.success("Crunchyroll database loaded successfully");
       dataFetchedRef.current = true;
       
+      // Set up real-time listener
       unsubscribeRef.current = subscribeToData("/", (realtimeData) => {
         if (realtimeData) {
           setDbData(realtimeData);
         }
       });
     } catch (error) {
-      console.error("Error loading database:", error);
-      toast.error("Failed to load database");
+      console.error("Error loading Crunchyroll database:", error);
+      toast.error("Failed to load Crunchyroll database");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Only fetch data if authenticated and not already fetched
     if (isAuthenticated && !dataFetchedRef.current) {
       loadData();
     }
     
+    // Cleanup function
     return () => {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
@@ -112,6 +60,8 @@ export default function CrunchyrollAdmin() {
     };
   }, [isAuthenticated, loadData]);
 
+  // If not authenticated, don't show anything as the ProtectedRoute component
+  // will handle the redirect to login page
   if (!isAuthenticated) {
     return null;
   }
@@ -120,7 +70,7 @@ export default function CrunchyrollAdmin() {
     return <MainLayout className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <h2 className="text-xl font-medium">Loading database...</h2>
+          <h2 className="text-xl font-medium">Loading Crunchyroll database...</h2>
         </div>
       </MainLayout>;
   }
@@ -129,13 +79,10 @@ export default function CrunchyrollAdmin() {
     return <MainLayout>
         <div className="glass-morphism p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Database Error</h2>
-          <p className="text-red-400">Failed to load database. Please check your connection and try again.</p>
+          <p className="text-red-400">Failed to load Crunchyroll database. Please check your connection and try again.</p>
         </div>
       </MainLayout>;
   }
-
-  // Use the dbData.ui_config or fallback to the properly structured default
-  const uiConfig = dbData?.ui_config || defaultUiConfig;
 
   return <MainLayout>
       <div className="space-y-8">
@@ -227,7 +174,60 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
-            <UIConfigPanel uiConfig={uiConfig} />
+            <UIConfigPanel uiConfig={dbData?.ui_config || {
+              approve_flow: {
+                account_format: "",
+                gif_url: "",
+                success_text: ""
+              },
+              confirmation_flow: {
+                button_text: "",
+                callback_data: "",
+                caption: "",
+                gif_url: "",
+                photo_url: ""
+              },
+              crunchyroll_screen: {
+                button_text: "",
+                callback_data: "",
+                caption: "",
+                photo_url: ""
+              },
+              freetrial_info: {
+                photo_url: ""
+              },
+              locked_flow: {
+                locked_text: ""
+              },
+              out_of_stock: {
+                gif_url: "",
+                messages: []
+              },
+              phonepe_screen: {
+                caption: "",
+                followup_text: "",
+                photo_url: ""
+              },
+              referral_info: {
+                photo_url: ""
+              },
+              reject_flow: {
+                error_text: "",
+                gif_url: ""
+              },
+              slot_booking: {
+                button_format: "",
+                callback_data: "",
+                caption: "",
+                gif_url: "",
+                photo_url: ""
+              },
+              start_command: {
+                buttons: [],
+                welcome_photo: "",
+                welcome_text: ""
+              }
+            }} />
           </TabsContent>
           
           <TabsContent value="users" className="mt-0">

@@ -5,7 +5,7 @@ import App from './App.tsx'
 import './index.css'
 
 // Ensure Supabase auth persistence by configuring it here
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 // Log current auth status to help debug session issues
 supabase.auth.getSession().then(({ data }) => {
