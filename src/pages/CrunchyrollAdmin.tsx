@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,9 +12,65 @@ import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
 import { fetchData, subscribeToData } from "@/lib/firebaseService";
-import { DatabaseSchema } from "@/types/database";
+import { DatabaseSchema, UIConfig } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+
+// Default UIConfig object that matches the required structure
+const defaultUiConfig: UIConfig = {
+  approve_flow: {
+    account_format: "",
+    gif_url: "",
+    success_text: ""
+  },
+  confirmation_flow: {
+    button_text: "",
+    callback_data: "",
+    caption: "",
+    gif_url: "",
+    photo_url: ""
+  },
+  crunchyroll_screen: {
+    button_text: "",
+    callback_data: "",
+    caption: "",
+    photo_url: ""
+  },
+  freetrial_info: {
+    photo_url: ""
+  },
+  locked_flow: {
+    locked_text: ""
+  },
+  out_of_stock: {
+    gif_url: "",
+    messages: []
+  },
+  phonepe_screen: {
+    caption: "",
+    followup_text: "",
+    photo_url: ""
+  },
+  referral_info: {
+    photo_url: ""
+  },
+  reject_flow: {
+    error_text: "",
+    gif_url: ""
+  },
+  slot_booking: {
+    button_format: "",
+    callback_data: "",
+    caption: "",
+    gif_url: "",
+    photo_url: ""
+  },
+  start_command: {
+    buttons: [],
+    welcome_photo: "",
+    welcome_text: ""
+  }
+};
 
 export default function CrunchyrollAdmin() {
   const [loading, setLoading] = useState(false);
@@ -77,7 +134,8 @@ export default function CrunchyrollAdmin() {
       </MainLayout>;
   }
 
-  const uiConfig = dbData?.ui_config || {};
+  // Use the dbData.ui_config or fallback to the properly structured default
+  const uiConfig = dbData?.ui_config || defaultUiConfig;
 
   return <MainLayout>
       <div className="space-y-8">

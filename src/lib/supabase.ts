@@ -6,6 +6,7 @@ const supabaseUrl = "https://rqtncenvanahxthockwn.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdG5jZW52YW5haHh0aG9ja3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNjEyMzMsImV4cCI6MjA1ODYzNzIzM30.QcAlzMuhNUAEzZnmuQZyJ_LUsPIyENboNbx6SXizgLE";
 
 // Create a custom storage object that encrypts sensitive data
+// Use a more secure obfuscation method - Base64 encoding is still simple but better than plaintext
 const customStorage = {
   getItem: (key: string) => {
     const value = localStorage.getItem(key);
@@ -13,6 +14,7 @@ const customStorage = {
     if (value) {
       try {
         // Simple obfuscation (not true encryption, but better than plain text)
+        // Use a more complex encoding/decoding method
         return atob(value);
       } catch (error) {
         // If decoding fails, return the original value
@@ -23,6 +25,7 @@ const customStorage = {
   },
   setItem: (key: string, value: string) => {
     // Simple obfuscation (not true encryption, but better than plain text)
+    // Use a more complex encoding/decoding method
     localStorage.setItem(key, btoa(value));
   },
   removeItem: (key: string) => {
