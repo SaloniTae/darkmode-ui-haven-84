@@ -22,10 +22,10 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
-// Safe localStorage accessor function
-const getStorageItem = (key: string, fallback: any): any => {
+// Safe localStorage accessor function for theme only
+const getStorageTheme = (fallback: any): any => {
   try {
-    const item = window.localStorage.getItem(key);
+    const item = window.localStorage.getItem("theme");
     return item ? JSON.parse(item) : fallback;
   } catch (error) {
     console.warn("localStorage is not available:", error);
@@ -33,10 +33,10 @@ const getStorageItem = (key: string, fallback: any): any => {
   }
 };
 
-// Safe localStorage setter function
-const setStorageItem = (key: string, value: any): void => {
+// Safe localStorage setter function for theme only
+const setStorageTheme = (value: any): void => {
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem("theme", JSON.stringify(value));
   } catch (error) {
     console.warn("localStorage is not available for writing:", error);
   }
@@ -47,7 +47,7 @@ export function ThemeProvider({
   defaultTheme = "dark",
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    return getStorageItem("theme", defaultTheme) as Theme;
+    return getStorageTheme(defaultTheme) as Theme;
   });
   
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
@@ -77,7 +77,7 @@ export function ThemeProvider({
     setResolvedTheme(effectiveTheme);
     
     // Save theme choice to localStorage
-    setStorageItem("theme", theme);
+    setStorageTheme(theme);
     
     // For system theme, listen to system preference changes
     if (theme === "system") {
