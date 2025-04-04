@@ -25,32 +25,30 @@ const PasswordResetPage = () => {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    // Try to determine which streaming service the user is resetting password for
-    const searchParams = new URLSearchParams(location.search);
-    const serviceParam = searchParams.get("service") as ServiceType | null;
-    
-    if (serviceParam && ["netflix", "crunchyroll", "prime"].includes(serviceParam)) {
-      setService(serviceParam as ServiceType);
-    }
-    
-    // Check if it comes from localStorage
-    try {
-      const storedService = localStorage.getItem("lastService");
-      if (storedService && !serviceParam && ["netflix", "crunchyroll", "prime"].includes(storedService)) {
-        setService(storedService as ServiceType);
-      }
-    } catch (error) {
-      console.warn("Could not access localStorage", error);
-    }
-    
-    // Simulate loading for smoother UI transitions
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(timer);
-  }, [location]);
+  const searchParams = new URLSearchParams(location.search);
+  const serviceParam = searchParams.get("service") as ServiceType | null;
 
+  let selectedService: ServiceType = "crunchyroll"; // default
+
+  if (serviceParam && ["netflix", "crunchyroll", "prime"].includes(serviceParam)) {
+    selectedService = serviceParam;
+  } else {
+    const storedService = localStorage.getItem("lastService");
+    if (storedService && ["netflix", "crunchyroll", "prime"].includes(storedService)) {
+      selectedService = storedService as ServiceType;
+    }
+  }
+
+  setService(selectedService); // Set it *immediately*
+  localStorage.setItem("lastService", selectedService);
+
+  const timer = setTimeout(() => {
+    setIsPageLoading(false); // This controls the visual delay
+  }, 800);
+
+  return () => clearTimeout(timer);
+}, [location]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
