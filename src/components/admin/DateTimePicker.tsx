@@ -37,34 +37,25 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
           <CalendarIcon className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-auto p-0" 
-        align={align} 
-        side="bottom"
-        alignOffset={-4}
-        sideOffset={8}
-        avoidCollisions={true}
-      >
-        <div className="flex flex-col max-h-[80vh]">
-          <ScrollArea className="flex-1 max-h-[350px]">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) {
-                  const currentDateTime = selectedDate;
-                  const newDate = new Date(date);
-                  newDate.setHours(
-                    currentDateTime.getHours(),
-                    currentDateTime.getMinutes()
-                  );
-                  onChange(newDate);
-                }
-              }}
-              initialFocus
-              className="pointer-events-auto border-b w-full"
-            />
-          </ScrollArea>
+      <PopoverContent className="w-auto p-0 max-h-[600px]" align={align} sideOffset={8}>
+        <div className="flex flex-col">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => {
+              if (date) {
+                const currentDateTime = selectedDate;
+                const newDate = new Date(date);
+                newDate.setHours(
+                  currentDateTime.getHours(),
+                  currentDateTime.getMinutes()
+                );
+                onChange(newDate);
+              }
+            }}
+            initialFocus
+            className="pointer-events-auto border-b w-full"
+          />
           <div className="p-3 border-t">
             <p className="text-sm font-medium mb-2">Time</p>
             <div className="flex items-center gap-2">
