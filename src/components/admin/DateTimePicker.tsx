@@ -37,8 +37,8 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
           <CalendarIcon className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align={align}>
-        <div className="p-3">
+      <PopoverContent className="w-auto p-0 max-h-[500px]" align={align} sideOffset={8}>
+        <div className="flex flex-col">
           <Calendar
             mode="single"
             selected={selectedDate}
@@ -54,9 +54,9 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
               }
             }}
             initialFocus
-            className="pointer-events-auto"
+            className="pointer-events-auto border-b"
           />
-          <div className="mt-4 p-2 border-t pt-4">
+          <div className="p-3 border-t">
             <p className="text-sm font-medium mb-2">Time</p>
             <div className="flex items-center gap-2">
               <div className="relative w-20">
@@ -74,7 +74,7 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
                     <SelectValue placeholder="Hour" />
                   </SelectTrigger>
                   <SelectContent>
-                    <ScrollArea className="h-52">
+                    <ScrollArea className="h-40">
                       {hours.map((hour) => (
                         <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                       ))}
@@ -96,7 +96,7 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
                     <SelectValue placeholder="Min" />
                   </SelectTrigger>
                   <SelectContent>
-                    <ScrollArea className="h-52">
+                    <ScrollArea className="h-40">
                       {minutes.map((minute) => (
                         <SelectItem key={minute} value={minute}>{minute}</SelectItem>
                       ))}
