@@ -6,10 +6,7 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction
+  AlertDialogDescription
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,8 +65,8 @@ export function NewSlotDialog({ open, onOpenChange, onCreateSlot }: NewSlotDialo
         onOpenChange(isOpen);
       }}
     >
-      <AlertDialogContent className="bg-background max-h-[85vh] p-0 overflow-hidden">
-        <ScrollArea className="max-h-[85vh]">
+      <AlertDialogContent className="bg-background max-h-[90vh] p-0 overflow-hidden">
+        <ScrollArea className="max-h-[90vh]">
           <div className="p-6">
             <AlertDialogHeader>
               <AlertDialogTitle>Add New Slot</AlertDialogTitle>
@@ -96,13 +93,6 @@ export function NewSlotDialog({ open, onOpenChange, onCreateSlot }: NewSlotDialo
                 onCancel={() => onOpenChange(false)}
               />
             </div>
-            
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCreateSlot}>
-                Create Slot
-              </AlertDialogAction>
-            </AlertDialogFooter>
           </div>
         </ScrollArea>
       </AlertDialogContent>
