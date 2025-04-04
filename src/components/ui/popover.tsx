@@ -22,6 +22,8 @@ const PopoverContent = React.forwardRef<
         className
       )}
       {...props}
+      collisionPadding={16}
+      avoidCollisions={true}
     />
   </PopoverPrimitive.Portal>
 ))
