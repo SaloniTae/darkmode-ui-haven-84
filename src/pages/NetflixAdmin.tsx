@@ -72,6 +72,7 @@ export default function NetflixAdmin() {
 
   return <MainLayout>
       <div className="space-y-8">
+        <h1 className="text-3xl font-bold text-[#E50914] mb-6">Netflix Dashboard</h1>
         <Tabs defaultValue="admin" className="w-full">
           <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-7 h-auto p-1 glass-morphism shadow-lg">
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="admin">Admins</TabsTrigger>

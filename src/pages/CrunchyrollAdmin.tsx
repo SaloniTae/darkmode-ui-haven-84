@@ -86,6 +86,7 @@ export default function CrunchyrollAdmin() {
 
   return <MainLayout>
       <div className="space-y-8">
+        <h1 className="text-3xl font-bold text-[#F47521] mb-6">Crunchyroll Dashboard</h1>
         <Tabs defaultValue="tokens" className="w-full">
           <TabsList className="w-full mb-6 grid grid-cols-2 md:grid-cols-8 h-auto p-1 glass-morphism shadow-lg">
             <TabsTrigger className="py-2.5 text-sm font-medium transition-all hover:bg-white/10" value="tokens">Tokens</TabsTrigger>
