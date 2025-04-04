@@ -61,11 +61,11 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
             <div className="flex items-center gap-2">
               <div className="relative w-20">
                 <Select 
-                  value={format(selectedDate, 'h')}
+                  value={format(selectedDate, 'hh')}
                   onValueChange={(hour) => {
                     const date = new Date(selectedDate);
                     const isPM = date.getHours() >= 12;
-                    const hourValue = parseInt(hour);
+                    const hourValue = parseInt(hour, 10);
                     date.setHours(isPM ? (hourValue === 12 ? 12 : hourValue + 12) : (hourValue === 12 ? 0 : hourValue));
                     onChange(date);
                   }}

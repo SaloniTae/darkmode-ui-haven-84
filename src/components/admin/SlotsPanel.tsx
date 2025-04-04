@@ -74,7 +74,8 @@ export function SlotsPanel({ slots }: SlotsPanelProps) {
       open: true,
       action: async () => {
         try {
-          await updateData(`/settings/slots/${slotKey}/enabled`, newEnabledValue);
+          // FIX 1: Just update the enabled field, not the entire object
+          await updateData(`/settings/slots/${slotKey}`, { enabled: newEnabledValue });
           
           setEditedSlots({
             ...editedSlots,

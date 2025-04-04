@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Slots } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -74,7 +73,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     
     // Convert the string date to a Date object for the calendar
     try {
-      const currentCred = editedCredentials[credKey as keyof typeof credentials];
+      const currentCred = editedCredentials[credKey];
       setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
     } catch (e) {
       setSelectedDate(new Date());
@@ -89,7 +88,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
 
   const handleSaveCredential = async (credKey: string) => {
     try {
-      await updateData(`/${credKey}`, editedCredentials[credKey as keyof typeof credentials]);
+      await updateData(`/${credKey}`, editedCredentials[credKey]);
       toast.success(`${credKey} updated successfully`);
       setEditingCredential(null);
       setSelectedDate(undefined);
@@ -103,18 +102,18 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     setEditedCredentials({
       ...editedCredentials,
       [credKey]: {
-        ...editedCredentials[credKey as keyof typeof credentials],
+        ...editedCredentials[credKey],
         [field]: value
       }
     });
   };
 
   const handleToggleLock = async (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     try {
-      await updateData(`/${credKey}/locked`, newLockedValue);
+      await updateData(`/${credKey}`, { locked: newLockedValue });
       
       setEditedCredentials({
         ...editedCredentials,
@@ -132,7 +131,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   };
 
   const toggleLockState = (credKey: string) => {
-    const currentCred = editedCredentials[credKey as keyof typeof credentials];
+    const currentCred = editedCredentials[credKey];
     const newLockedValue = currentCred.locked === 0 ? 1 : 0;
     
     setConfirmationDialog({
@@ -245,7 +244,7 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.entries(editedCredentials).map(([credKey, cred]) => {
           const isEditing = editingCredential === credKey;
-          const currentCred = editedCredentials[credKey as keyof typeof credentials];
+          const currentCred = editedCredentials[credKey];
           
           return (
             <DataCard
