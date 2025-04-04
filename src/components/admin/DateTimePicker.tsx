@@ -37,7 +37,7 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
           <CalendarIcon className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 max-h-[500px]" align={align} sideOffset={8}>
+      <PopoverContent className="w-auto p-0 max-h-[600px]" align={align} sideOffset={8}>
         <div className="flex flex-col">
           <Calendar
             mode="single"
@@ -54,7 +54,7 @@ export function DateTimePicker({ value, onChange, align = "end" }: DateTimePicke
               }
             }}
             initialFocus
-            className="pointer-events-auto border-b"
+            className="pointer-events-auto border-b w-full"
           />
           <div className="p-3 border-t">
             <p className="text-sm font-medium mb-2">Time</p>
