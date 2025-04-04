@@ -71,7 +71,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
   const handleEditCredential = (credKey: string) => {
     setEditingCredential(credKey);
     
-    // Convert the string date to a Date object for the calendar
     try {
       const currentCred = editedCredentials[credKey];
       setSelectedDate(parse(currentCred.expiry_date, 'yyyy-MM-dd', new Date()));
@@ -146,7 +145,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
     try {
       await removeData(`/${credKey}`);
       
-      // Update local state by removing the credential
       const updatedCredentials = { ...editedCredentials };
       delete updatedCredentials[credKey];
       
@@ -208,13 +206,11 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
       await setData(`/${newCredentialKey}`, newCredential);
       toast.success(`${newCredentialKey} created successfully`);
       
-      // Update local state with new credential
       setEditedCredentials({
         ...editedCredentials,
         [newCredentialKey]: newCredential
       });
       
-      // Reset form and close dialog
       setNewCredentialKey("");
       setNewCredential({
         belongs_to_slot: "",
@@ -444,7 +440,6 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
         })}
       </div>
       
-      {/* Confirmation Dialog */}
       <AlertDialog 
         open={confirmationDialog.open} 
         onOpenChange={(open) => {
@@ -474,137 +469,140 @@ export function CredentialsPanel({ credentials, slots }: CredentialsPanelProps) 
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Add Credential Dialog */}
       <AlertDialog 
         open={isAddingCredential} 
         onOpenChange={setIsAddingCredential}
       >
-        <AlertDialogContent className="bg-background">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Add New Credential</AlertDialogTitle>
-            <AlertDialogDescription>
-              Create a new credential for user access
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-cred-key">Credential Key</Label>
-              <Input
-                id="new-cred-key"
-                placeholder="e.g., cred5"
-                value={newCredentialKey}
-                onChange={(e) => setNewCredentialKey(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-cred-email">Email</Label>
-              <Input
-                id="new-cred-email"
-                placeholder="email@example.com"
-                value={newCredential.email}
-                onChange={(e) => handleNewCredentialChange('email', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-cred-password">Password</Label>
-              <Input
-                id="new-cred-password"
-                placeholder="password"
-                value={newCredential.password}
-                onChange={(e) => handleNewCredentialChange('password', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-cred-slot">Slot</Label>
-              <Select
-                value={newCredential.belongs_to_slot}
-                onValueChange={(value) => handleNewCredentialChange('belongs_to_slot', value)}
-              >
-                <SelectTrigger id="new-cred-slot">
-                  <SelectValue placeholder="Select slot" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border border-input">
-                  {Object.keys(slots).map((slotKey) => (
-                    <SelectItem key={slotKey} value={slotKey}>{slotKey}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-cred-expiry">Expiry Date</Label>
-              <div className="flex">
-                <Input
-                  id="new-cred-expiry"
-                  value={newCredential.expiry_date}
-                  onChange={(e) => handleNewCredentialChange('expiry_date', e.target.value)}
-                  className="flex-1"
-                />
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="ml-2">
-                      <CalendarIcon className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-popover">
-                    <Calendar
-                      mode="single"
-                      selected={parse(newCredential.expiry_date, 'yyyy-MM-dd', new Date())}
-                      onSelect={(date) => handleDateSelect('new', date)}
-                      initialFocus
-                      className="bg-background"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-cred-max-usage">Max Usage</Label>
-                <Input
-                  id="new-cred-max-usage"
-                  type="number"
-                  value={newCredential.max_usage}
-                  onChange={(e) => handleNewCredentialChange('max_usage', parseInt(e.target.value))}
-                />
-              </div>
+        <AlertDialogContent className="bg-background max-h-[85vh] p-0 overflow-hidden">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-6">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Add New Credential</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Create a new credential for user access
+                </AlertDialogDescription>
+              </AlertDialogHeader>
               
-              <div className="space-y-2">
-                <Label htmlFor="new-cred-lock">Lock Status</Label>
-                <div className="flex items-center h-10 space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => handleNewCredentialChange('locked', newCredential.locked === 0 ? 1 : 0)}
-                    className={cn(
-                      "flex items-center justify-center w-6 h-6 rounded-full transition-colors",
-                      newCredential.locked === 0 
-                        ? "bg-green-500 text-white hover:bg-green-600" 
-                        : "bg-red-500 text-white hover:bg-red-600"
-                    )}
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-cred-key">Credential Key</Label>
+                  <Input
+                    id="new-cred-key"
+                    placeholder="e.g., cred5"
+                    value={newCredentialKey}
+                    onChange={(e) => setNewCredentialKey(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-cred-email">Email</Label>
+                  <Input
+                    id="new-cred-email"
+                    placeholder="email@example.com"
+                    value={newCredential.email}
+                    onChange={(e) => handleNewCredentialChange('email', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-cred-password">Password</Label>
+                  <Input
+                    id="new-cred-password"
+                    placeholder="password"
+                    value={newCredential.password}
+                    onChange={(e) => handleNewCredentialChange('password', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-cred-slot">Slot</Label>
+                  <Select
+                    value={newCredential.belongs_to_slot}
+                    onValueChange={(value) => handleNewCredentialChange('belongs_to_slot', value)}
                   >
-                    {newCredential.locked === 0 ? (
-                      <Unlock className="w-4 h-4" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                  </button>
-                  <span>{newCredential.locked === 0 ? "Unlocked" : "Locked"}</span>
+                    <SelectTrigger id="new-cred-slot">
+                      <SelectValue placeholder="Select slot" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-input">
+                      {Object.keys(slots).map((slotKey) => (
+                        <SelectItem key={slotKey} value={slotKey}>{slotKey}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-cred-expiry">Expiry Date</Label>
+                  <div className="flex">
+                    <Input
+                      id="new-cred-expiry"
+                      value={newCredential.expiry_date}
+                      onChange={(e) => handleNewCredentialChange('expiry_date', e.target.value)}
+                      className="flex-1"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="ml-2">
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-popover">
+                        <Calendar
+                          mode="single"
+                          selected={parse(newCredential.expiry_date, 'yyyy-MM-dd', new Date())}
+                          onSelect={(date) => handleDateSelect('new', date)}
+                          initialFocus
+                          className="bg-background"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-cred-max-usage">Max Usage</Label>
+                    <Input
+                      id="new-cred-max-usage"
+                      type="number"
+                      value={newCredential.max_usage}
+                      onChange={(e) => handleNewCredentialChange('max_usage', parseInt(e.target.value))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="new-cred-lock">Lock Status</Label>
+                    <div className="flex items-center h-10 space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleNewCredentialChange('locked', newCredential.locked === 0 ? 1 : 0)}
+                        className={cn(
+                          "flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                          newCredential.locked === 0 
+                            ? "bg-green-500 text-white hover:bg-green-600" 
+                            : "bg-red-500 text-white hover:bg-red-600"
+                        )}
+                      >
+                        {newCredential.locked === 0 ? (
+                          <Unlock className="w-4 h-4" />
+                        ) : (
+                          <Lock className="w-4 h-4" />
+                        )}
+                      </button>
+                      <span>{newCredential.locked === 0 ? "Unlocked" : "Locked"}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+              
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCreateCredential}>
+                  Create Credential
+                </AlertDialogAction>
+              </AlertDialogFooter>
             </div>
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCreateCredential}>
-              Create Credential
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          </ScrollArea>
         </AlertDialogContent>
       </AlertDialog>
     </div>

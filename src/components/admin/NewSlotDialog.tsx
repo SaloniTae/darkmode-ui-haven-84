@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { SlotForm } from "./SlotForm";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface NewSlotDialogProps {
   open: boolean;
@@ -67,39 +68,43 @@ export function NewSlotDialog({ open, onOpenChange, onCreateSlot }: NewSlotDialo
         onOpenChange(isOpen);
       }}
     >
-      <AlertDialogContent className="bg-background">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Add New Slot</AlertDialogTitle>
-          <AlertDialogDescription>
-            Create a new booking slot
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-slot-key">Slot Key</Label>
-            <Input
-              id="new-slot-key"
-              placeholder="e.g., slot_4"
-              value={newSlotKey}
-              onChange={(e) => setNewSlotKey(e.target.value)}
-            />
+      <AlertDialogContent className="bg-background max-h-[85vh] p-0 overflow-hidden">
+        <ScrollArea className="max-h-[85vh]">
+          <div className="p-6">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Add New Slot</AlertDialogTitle>
+              <AlertDialogDescription>
+                Create a new booking slot
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-slot-key">Slot Key</Label>
+                <Input
+                  id="new-slot-key"
+                  placeholder="e.g., slot_4"
+                  value={newSlotKey}
+                  onChange={(e) => setNewSlotKey(e.target.value)}
+                />
+              </div>
+              
+              <SlotForm 
+                slotData={newSlot}
+                onSlotChange={handleNewSlotChange}
+                onSave={handleCreateSlot}
+                onCancel={() => onOpenChange(false)}
+              />
+            </div>
+            
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCreateSlot}>
+                Create Slot
+              </AlertDialogAction>
+            </AlertDialogFooter>
           </div>
-          
-          <SlotForm 
-            slotData={newSlot}
-            onSlotChange={handleNewSlotChange}
-            onSave={handleCreateSlot}
-            onCancel={() => onOpenChange(false)}
-          />
-        </div>
-        
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleCreateSlot}>
-            Create Slot
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        </ScrollArea>
       </AlertDialogContent>
     </AlertDialog>
   );
