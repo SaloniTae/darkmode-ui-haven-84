@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { UIConfig, CrunchyrollScreen, NetflixPrimeScreen } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
@@ -7,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Save, Image, Plus, Trash } from "lucide-react";
+import { Edit, Save, Image, Plus, Trash, AlertCircle } from "lucide-react";
 import { updateData } from "@/lib/firebaseService";
 import { updatePrimeData } from "@/lib/firebaseService";
 import { updateNetflixData } from "@/lib/firebaseService";
@@ -18,17 +17,44 @@ interface UIConfigPanelProps {
   uiConfig: UIConfig;
 }
 
+const isValidUrl = (url: string): boolean => {
+  if (!url) return false;
+  
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+const validateMediaUrl = (url: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!isValidUrl(url)) {
+      resolve(false);
+      return;
+    }
+    
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+};
+
 export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
   const [activeSection, setActiveSection] = useState("start_command");
   const [editedConfig, setEditedConfig] = useState<UIConfig>({ ...uiConfig });
   const [isEditing, setIsEditing] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [invalidUrls, setInvalidUrls] = useState<Record<string, string[]>>({});
   const location = useLocation();
 
   const isNetflixOrPrime = location.pathname.includes("netflix") || location.pathname.includes("prime");
 
-  // Update edited config when uiConfig prop changes
   useEffect(() => {
     setEditedConfig({ ...uiConfig });
+    setInvalidUrls({});
   }, [uiConfig]);
 
   const getUpdateFunction = () => {
@@ -40,19 +66,89 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
     return updateData; // Default for Crunchyroll
   };
 
+  const validateAllMediaUrls = async () => {
+    setIsValidating(true);
+    const newInvalidUrls: Record<string, string[]> = {};
+    
+    const validateAndTrack = async (section: string, field: string, url: string) => {
+      if (!url) return;
+      
+      const isValid = await validateMediaUrl(url);
+      if (!isValid) {
+        if (!newInvalidUrls[section]) {
+          newInvalidUrls[section] = [];
+        }
+        newInvalidUrls[section].push(field);
+      }
+    };
+    
+    const urlValidations = [
+      validateAndTrack('start_command', 'welcome_photo', editedConfig.start_command.welcome_photo),
+      validateAndTrack('crunchyroll_screen', isNetflixOrPrime ? 'gif_url' : 'photo_url', 
+        isNetflixOrPrime 
+          ? (editedConfig.crunchyroll_screen as NetflixPrimeScreen).gif_url || ""
+          : (editedConfig.crunchyroll_screen as CrunchyrollScreen).photo_url || ""),
+      validateAndTrack('slot_booking', 'photo_url', editedConfig.slot_booking.photo_url),
+      validateAndTrack('slot_booking', 'gif_url', editedConfig.slot_booking.gif_url),
+      validateAndTrack('confirmation_flow', 'photo_url', editedConfig.confirmation_flow.photo_url),
+      validateAndTrack('confirmation_flow', 'gif_url', editedConfig.confirmation_flow.gif_url),
+      validateAndTrack('phonepe_screen', 'photo_url', editedConfig.phonepe_screen.photo_url),
+      validateAndTrack('approve_flow', 'gif_url', editedConfig.approve_flow.gif_url),
+      validateAndTrack('referral_info', 'photo_url', editedConfig.referral_info.photo_url),
+      validateAndTrack('freetrial_info', 'photo_url', editedConfig.freetrial_info.photo_url),
+      validateAndTrack('out_of_stock', 'gif_url', editedConfig.out_of_stock.gif_url)
+    ];
+    
+    await Promise.all(urlValidations);
+    setInvalidUrls(newInvalidUrls);
+    setIsValidating(false);
+    
+    const totalInvalidUrls = Object.values(newInvalidUrls).reduce((total, urls) => total + urls.length, 0);
+    return totalInvalidUrls === 0;
+  };
+
   const handleSaveChanges = async () => {
     try {
+      setIsValidating(true);
+      const isValid = await validateAllMediaUrls();
+      setIsValidating(false);
+      
+      if (!isValid) {
+        const shouldProceed = window.confirm(
+          "Some image or GIF URLs appear to be invalid. They may not display correctly. Do you want to proceed with saving anyway?"
+        );
+        
+        if (!shouldProceed) {
+          return;
+        }
+      }
+      
       const updateFn = getUpdateFunction();
       await updateFn("/ui_config", editedConfig);
       toast.success("UI configuration updated successfully");
       setIsEditing(false);
+      
+      setImageKey(Date.now());
     } catch (error) {
       console.error("Error updating UI config:", error);
       toast.error("Failed to update UI configuration");
     }
   };
 
+  const hasInvalidUrl = (section: string, field: string): boolean => {
+    return Boolean(invalidUrls[section]?.includes(field));
+  };
+
   const handleInputChange = (section: string, field: string, value: any) => {
+    if (invalidUrls[section]?.includes(field)) {
+      const updatedInvalidUrls = { ...invalidUrls };
+      updatedInvalidUrls[section] = updatedInvalidUrls[section].filter(f => f !== field);
+      if (updatedInvalidUrls[section].length === 0) {
+        delete updatedInvalidUrls[section];
+      }
+      setInvalidUrls(updatedInvalidUrls);
+    }
+    
     setEditedConfig({
       ...editedConfig,
       [section]: {
@@ -151,7 +247,6 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
     });
   };
 
-  // Function to get the correct media URL based on service type
   const getMediaUrl = (screen: CrunchyrollScreen | NetflixPrimeScreen): string => {
     if (isNetflixOrPrime) {
       return (screen as NetflixPrimeScreen).gif_url || "";
@@ -160,10 +255,8 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
     }
   };
 
-  // This key helps force re-render of images when URLs change
   const [imageKey, setImageKey] = useState(Date.now());
   
-  // Force re-render of images when edited config changes
   useEffect(() => {
     setImageKey(Date.now());
   }, [editedConfig]);
@@ -172,17 +265,26 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">UI Configuration</h2>
-        <Button
-          variant={isEditing ? "default" : "outline"}
-          onClick={() => {
-            if (isEditing) {
-              setEditedConfig({ ...uiConfig });
-            }
-            setIsEditing(!isEditing);
-          }}
-        >
-          {isEditing ? "Cancel" : <><Edit className="mr-2 h-4 w-4" /> Edit</>}
-        </Button>
+        <div className="flex gap-2">
+          {isValidating && (
+            <div className="flex items-center text-muted-foreground">
+              <span className="animate-spin mr-2">⟳</span>
+              Validating URLs...
+            </div>
+          )}
+          <Button
+            variant={isEditing ? "default" : "outline"}
+            onClick={() => {
+              if (isEditing) {
+                setEditedConfig({ ...uiConfig });
+                setInvalidUrls({});
+              }
+              setIsEditing(!isEditing);
+            }}
+          >
+            {isEditing ? "Cancel" : <><Edit className="mr-2 h-4 w-4" /> Edit</>}
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
@@ -213,12 +315,23 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="welcome-photo">Welcome Photo URL</Label>
+                    <div className="flex justify-between">
+                      <Label htmlFor="welcome-photo" className={hasInvalidUrl('start_command', 'welcome_photo') ? "text-red-500" : ""}>
+                        Welcome Photo URL
+                        {hasInvalidUrl('start_command', 'welcome_photo') && (
+                          <AlertCircle className="inline ml-1 h-4 w-4 text-red-500" />
+                        )}
+                      </Label>
+                    </div>
                     <Input
                       id="welcome-photo"
                       value={editedConfig.start_command.welcome_photo}
                       onChange={(e) => handleInputChange('start_command', 'welcome_photo', e.target.value)}
+                      className={hasInvalidUrl('start_command', 'welcome_photo') ? "border-red-500" : ""}
                     />
+                    {hasInvalidUrl('start_command', 'welcome_photo') && (
+                      <p className="text-xs text-red-500">Invalid or inaccessible URL</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -318,21 +431,49 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
                   <div className="space-y-2">
                     {isNetflixOrPrime ? (
                       <>
-                        <Label htmlFor="cr-gif">GIF URL</Label>
+                        <div className="flex justify-between">
+                          <Label 
+                            htmlFor="cr-gif" 
+                            className={hasInvalidUrl('crunchyroll_screen', 'gif_url') ? "text-red-500" : ""}
+                          >
+                            GIF URL
+                            {hasInvalidUrl('crunchyroll_screen', 'gif_url') && (
+                              <AlertCircle className="inline ml-1 h-4 w-4 text-red-500" />
+                            )}
+                          </Label>
+                        </div>
                         <Input
                           id="cr-gif"
                           value={(editedConfig.crunchyroll_screen as NetflixPrimeScreen).gif_url || ""}
                           onChange={(e) => handleInputChange('crunchyroll_screen', 'gif_url', e.target.value)}
+                          className={hasInvalidUrl('crunchyroll_screen', 'gif_url') ? "border-red-500" : ""}
                         />
+                        {hasInvalidUrl('crunchyroll_screen', 'gif_url') && (
+                          <p className="text-xs text-red-500">Invalid or inaccessible URL</p>
+                        )}
                       </>
                     ) : (
                       <>
-                        <Label htmlFor="cr-photo">Photo URL</Label>
+                        <div className="flex justify-between">
+                          <Label 
+                            htmlFor="cr-photo" 
+                            className={hasInvalidUrl('crunchyroll_screen', 'photo_url') ? "text-red-500" : ""}
+                          >
+                            Photo URL
+                            {hasInvalidUrl('crunchyroll_screen', 'photo_url') && (
+                              <AlertCircle className="inline ml-1 h-4 w-4 text-red-500" />
+                            )}
+                          </Label>
+                        </div>
                         <Input
                           id="cr-photo"
                           value={(editedConfig.crunchyroll_screen as CrunchyrollScreen).photo_url || ""}
                           onChange={(e) => handleInputChange('crunchyroll_screen', 'photo_url', e.target.value)}
+                          className={hasInvalidUrl('crunchyroll_screen', 'photo_url') ? "border-red-500" : ""}
                         />
+                        {hasInvalidUrl('crunchyroll_screen', 'photo_url') && (
+                          <p className="text-xs text-red-500">Invalid or inaccessible URL</p>
+                        )}
                       </>
                     )}
                   </div>
@@ -932,8 +1073,19 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
       
       {isEditing && (
         <div className="flex justify-end mt-4">
-          <Button onClick={handleSaveChanges}>
-            <Save className="mr-2 h-4 w-4" /> Save Changes
+          <Button 
+            onClick={handleSaveChanges} 
+            disabled={isValidating}
+          >
+            {isValidating ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span> Validating
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" /> Save Changes
+              </>
+            )}
           </Button>
         </div>
       )}
