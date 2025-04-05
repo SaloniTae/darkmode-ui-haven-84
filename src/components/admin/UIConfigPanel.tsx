@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { UIConfig } from "@/types/database";
+import { UIConfig, CrunchyrollScreen, NetflixPrimeScreen } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit, Save, Image, Plus, Trash } from "lucide-react";
-import { updateData } from "@/lib/firebase";
-import { updatePrimeData } from "@/lib/firebase-prime";
-import { updateNetflixData } from "@/lib/firebase-netflix";
+import { updateData } from "@/lib/firebaseService";
+import { updatePrimeData } from "@/lib/firebaseService";
+import { updateNetflixData } from "@/lib/firebaseService";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 
@@ -25,6 +24,10 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
   const location = useLocation();
 
   const isNetflixOrPrime = location.pathname.includes("netflix") || location.pathname.includes("prime");
+
+  useEffect(() => {
+    setEditedConfig({ ...uiConfig });
+  }, [uiConfig]);
 
   const getUpdateFunction = () => {
     if (location.pathname.includes("netflix")) {
