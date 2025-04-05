@@ -72,6 +72,7 @@ export interface CrunchyrollScreen {
   callback_data: string;
   caption: string;
   photo_url: string;
+  gif_url?: string;
 }
 
 export interface NetflixPrimeScreen {
@@ -79,6 +80,7 @@ export interface NetflixPrimeScreen {
   callback_data: string;
   caption: string;
   gif_url: string;
+  photo_url?: string;
 }
 
 export interface UIConfig {
