@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -25,20 +24,17 @@ const PasswordResetPage = () => {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    // Try to determine which streaming service the user is resetting password for
     const searchParams = new URLSearchParams(location.search);
     const serviceParam = searchParams.get("service") as ServiceType | null;
     
     if (serviceParam && ["netflix", "crunchyroll", "prime"].includes(serviceParam)) {
       setService(serviceParam as ServiceType);
-      // Also save to localStorage for future reference
       try {
         localStorage.setItem("lastService", serviceParam);
       } catch (error) {
         console.warn("Could not access localStorage", error);
       }
     } else {
-      // Check if it comes from localStorage
       try {
         const storedService = localStorage.getItem("lastService");
         if (storedService && ["netflix", "crunchyroll", "prime"].includes(storedService)) {
@@ -48,8 +44,6 @@ const PasswordResetPage = () => {
         console.warn("Could not access localStorage", error);
       }
       
-      // If still not set, try to extract from the URL/email link
-      // This handles the case where Supabase appends auth parameters to the URL
       const path = location.pathname;
       if (path.includes('netflix')) {
         setService('netflix');
@@ -60,7 +54,6 @@ const PasswordResetPage = () => {
       }
     }
     
-    // Check if we can extract service info from user metadata
     const checkUserMetadata = async () => {
       try {
         const { supabase } = await import("@/lib/supabase");
@@ -78,7 +71,6 @@ const PasswordResetPage = () => {
     
     checkUserMetadata();
     
-    // Simulate loading for smoother UI transitions
     const timer = setTimeout(() => {
       setIsPageLoading(false);
     }, 800);
@@ -118,22 +110,12 @@ const PasswordResetPage = () => {
     }
   };
 
-  // Determine button styling based on resolved theme and service
   const getButtonStyle = () => {
-    const baseStyle = resolvedTheme === 'dark' 
-      ? "bg-[#1c1c1c] hover:bg-[#2a2a2a] text-white border border-gray-700/30" 
-      : "bg-[#f1f1f1] hover:bg-[#e5e5e5] text-black border border-gray-300/30";
-    
-    // Service-specific styling
-    if (service === 'netflix') {
-      return "bg-[#E50914] hover:bg-[#E50914]/90 text-white";
-    } else if (service === 'prime') {
-      return "bg-[#00A8E1] hover:bg-[#00A8E1]/90 text-white";
-    } else if (service === 'crunchyroll') {
-      return "bg-[#F47521] hover:bg-[#F47521]/90 text-white";
+    if (resolvedTheme === 'dark') {
+      return "bg-[#1c1c1c] hover:bg-[#2a2a2a] text-white border border-gray-700/30";
+    } else {
+      return "bg-[#f1f1f1] hover:bg-[#e5e5e5] text-black border border-gray-300/30";
     }
-    
-    return baseStyle;
   };
 
   return (
