@@ -67,6 +67,20 @@ export interface Transactions {
 }
 
 // UI Config Types
+export interface CrunchyrollScreen {
+  button_text: string;
+  callback_data: string;
+  caption: string;
+  photo_url: string;
+}
+
+export interface NetflixPrimeScreen {
+  button_text: string;
+  callback_data: string;
+  caption: string;
+  gif_url: string;
+}
+
 export interface UIConfig {
   approve_flow: {
     account_format: string;
@@ -80,12 +94,7 @@ export interface UIConfig {
     gif_url: string;
     photo_url: string;
   };
-  crunchyroll_screen: {
-    button_text: string;
-    callback_data: string;
-    caption: string;
-    photo_url: string;
-  };
+  crunchyroll_screen: CrunchyrollScreen | NetflixPrimeScreen;
   freetrial_info: {
     photo_url: string;
   };

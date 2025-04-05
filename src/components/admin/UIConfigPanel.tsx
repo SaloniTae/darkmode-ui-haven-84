@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UIConfig } from "@/types/database";
 import { DataCard } from "@/components/ui/DataCard";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Edit, Save, Image, Plus, Trash } from "lucide-react";
 import { updateData } from "@/lib/firebase";
 import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
 
 interface UIConfigPanelProps {
   uiConfig: UIConfig;
@@ -18,6 +19,9 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
   const [activeSection, setActiveSection] = useState("start_command");
   const [editedConfig, setEditedConfig] = useState<UIConfig>({ ...uiConfig });
   const [isEditing, setIsEditing] = useState(false);
+  const location = useLocation();
+
+  const isNetflixOrPrime = location.pathname.includes("netflix") || location.pathname.includes("prime");
 
   const handleSaveChanges = async () => {
     try {
@@ -276,12 +280,25 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="cr-photo">Photo URL</Label>
-                    <Input
-                      id="cr-photo"
-                      value={editedConfig.crunchyroll_screen.photo_url}
-                      onChange={(e) => handleInputChange('crunchyroll_screen', 'photo_url', e.target.value)}
-                    />
+                    {isNetflixOrPrime ? (
+                      <>
+                        <Label htmlFor="cr-gif">GIF URL</Label>
+                        <Input
+                          id="cr-gif"
+                          value={(editedConfig.crunchyroll_screen as any).gif_url || ""}
+                          onChange={(e) => handleInputChange('crunchyroll_screen', 'gif_url', e.target.value)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Label htmlFor="cr-photo">Photo URL</Label>
+                        <Input
+                          id="cr-photo"
+                          value={(editedConfig.crunchyroll_screen as any).photo_url || ""}
+                          onChange={(e) => handleInputChange('crunchyroll_screen', 'photo_url', e.target.value)}
+                        />
+                      </>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -312,11 +329,15 @@ export function UIConfigPanel({ uiConfig }: UIConfigPanelProps) {
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium mb-2 text-muted-foreground">Photo</h3>
+                    <h3 className="text-sm font-medium mb-2 text-muted-foreground">
+                      {isNetflixOrPrime ? "GIF" : "Photo"}
+                    </h3>
                     <div className="glass-morphism p-2 rounded-md overflow-hidden">
                       <div className="relative aspect-video bg-black/20 rounded overflow-hidden">
                         <img 
-                          src={editedConfig.crunchyroll_screen.photo_url}
+                          src={isNetflixOrPrime ? 
+                            (editedConfig.crunchyroll_screen as any).gif_url : 
+                            (editedConfig.crunchyroll_screen as any).photo_url}
                           alt="Crunchyroll Screen"
                           className="absolute inset-0 w-full h-full object-cover object-center"
                           onError={(e) => {
