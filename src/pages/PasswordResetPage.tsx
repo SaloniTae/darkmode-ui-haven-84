@@ -50,7 +50,7 @@ const PasswordResetPage = () => {
     
     return () => clearTimeout(timer);
   }, [location]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -110,12 +110,9 @@ const PasswordResetPage = () => {
           </>
         ) : (
           <>
-         
-            {/*
-  <div className="flex justify-center mb-6 animate-fade-in">
-    <Logo size="lg" service={service} />
-  </div>
-*/}
+            <div className="flex justify-center mb-6 animate-fade-in">
+              <Logo size="lg" service={service} />
+            </div>
             
             <Card className="w-full border-border bg-card/80 backdrop-blur-sm shadow-lg animate-scale-in transition-all duration-300">
               <CardHeader>
