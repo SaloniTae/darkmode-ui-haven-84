@@ -70,6 +70,22 @@ export default function PrimeAdmin() {
       </MainLayout>;
   }
 
+  // Prepare credentials data, ensuring it always has a defined structure
+  const credentialsData = {
+    cred1: dbData.cred1 || { belongs_to_slot: "", email: "", expiry_date: "", locked: 0, max_usage: 0, usage_count: 0, password: "" },
+    cred2: dbData.cred2 || { belongs_to_slot: "", email: "", expiry_date: "", locked: 0, max_usage: 0, usage_count: 0, password: "" },
+    cred3: dbData.cred3 || { belongs_to_slot: "", email: "", expiry_date: "", locked: 0, max_usage: 0, usage_count: 0, password: "" },
+    cred4: dbData.cred4 || { belongs_to_slot: "", email: "", expiry_date: "", locked: 0, max_usage: 0, usage_count: 0, password: "" },
+    ...Object.fromEntries(
+      Object.entries(dbData)
+        .filter(([key]) => key.startsWith('cred') && !['cred1', 'cred2', 'cred3', 'cred4'].includes(key))
+        .map(([key, value]) => [key, value || { belongs_to_slot: "", email: "", expiry_date: "", locked: 0, max_usage: 0, usage_count: 0, password: "" }])
+    )
+  };
+
+  // Ensure slots are defined
+  const slots = dbData.settings?.slots || {};
+
   return <MainLayout>
       <div className="space-y-8">
         <Tabs defaultValue="admin" className="w-full">
@@ -84,41 +100,35 @@ export default function PrimeAdmin() {
           </TabsList>
           
           <TabsContent value="admin" className="mt-0">
-            <AdminPanel adminConfig={dbData.admin_config} />
+            <AdminPanel adminConfig={dbData.admin_config || { superior_admins: [], inferior_admins: [] }} />
           </TabsContent>
           
           <TabsContent value="credentials" className="mt-0">
-            <CredentialsPanel credentials={{
-              cred1: dbData.cred1,
-              cred2: dbData.cred2,
-              cred3: dbData.cred3,
-              cred4: dbData.cred4,
-              ...Object.fromEntries(
-                Object.entries(dbData)
-                  .filter(([key]) => key.startsWith('cred') && !['cred1', 'cred2', 'cred3', 'cred4'].includes(key))
-                  .map(([key, value]) => [key, value])
-              )
-            }} slots={dbData.settings.slots} />
+            <CredentialsPanel credentials={credentialsData} slots={slots} />
           </TabsContent>
           
           <TabsContent value="slots" className="mt-0">
-            <SlotsPanel slots={dbData.settings.slots} />
+            <SlotsPanel slots={slots} />
           </TabsContent>
           
           <TabsContent value="referrals" className="mt-0">
-            <ReferralsPanel referrals={dbData.referrals} referralSettings={dbData.referral_settings} freeTrialClaims={dbData.free_trial_claims} />
+            <ReferralsPanel 
+              referrals={dbData.referrals || {}} 
+              referralSettings={dbData.referral_settings || { buy_with_points_enabled: false, free_trial_enabled: false, points_per_referral: 0, required_point: 0 }} 
+              freeTrialClaims={dbData.free_trial_claims || {}} 
+            />
           </TabsContent>
           
           <TabsContent value="transactions" className="mt-0">
-            <TransactionsPanel transactions={dbData.transactions} usedOrderIds={dbData.used_orderids} />
+            <TransactionsPanel transactions={dbData.transactions || {}} usedOrderIds={dbData.used_orderids || {}} />
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
-            <UIConfigPanel uiConfig={dbData.ui_config} />
+            <UIConfigPanel uiConfig={dbData.ui_config || {}} />
           </TabsContent>
           
           <TabsContent value="users" className="mt-0">
-            <UsersPanel users={dbData.users} />
+            <UsersPanel users={dbData.users || {}} />
           </TabsContent>
         </Tabs>
       </div>

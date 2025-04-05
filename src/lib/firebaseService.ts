@@ -21,39 +21,64 @@ export const createFirebaseService = (platform: 'default' | 'prime' | 'netflix' 
   
   // Database helper functions
   const fetchData = async (path: string) => {
-    const dataRef = ref(db, path);
-    const snapshot = await get(dataRef);
-    return snapshot.exists() ? snapshot.val() : null;
+    try {
+      const dataRef = ref(db, path);
+      const snapshot = await get(dataRef);
+      return snapshot.exists() ? snapshot.val() : null;
+    } catch (error) {
+      console.error(`Error fetching data from ${platform} database:`, error);
+      throw error;
+    }
   };
 
   const updateData = async (path: string, data: any) => {
-    const dataRef = ref(db, path);
-    await update(dataRef, data);
-    return data;
+    try {
+      const dataRef = ref(db, path);
+      await update(dataRef, data);
+      return data;
+    } catch (error) {
+      console.error(`Error updating data in ${platform} database:`, error);
+      throw error;
+    }
   };
 
   const setData = async (path: string, data: any) => {
-    const dataRef = ref(db, path);
-    await set(dataRef, data);
-    return data;
+    try {
+      const dataRef = ref(db, path);
+      await set(dataRef, data);
+      return data;
+    } catch (error) {
+      console.error(`Error setting data in ${platform} database:`, error);
+      throw error;
+    }
   };
 
   const removeData = async (path: string) => {
-    const dataRef = ref(db, path);
-    await remove(dataRef);
-    return true;
+    try {
+      const dataRef = ref(db, path);
+      await remove(dataRef);
+      return true;
+    } catch (error) {
+      console.error(`Error removing data from ${platform} database:`, error);
+      throw error;
+    }
   };
 
   // Realtime listener functions
   const subscribeToData = (path: string, callback: (data: any) => void) => {
-    const dataRef = ref(db, path);
-    onValue(dataRef, (snapshot) => {
-      const data = snapshot.exists() ? snapshot.val() : null;
-      callback(data);
-    });
-    
-    // Return unsubscribe function
-    return () => off(dataRef);
+    try {
+      const dataRef = ref(db, path);
+      onValue(dataRef, (snapshot) => {
+        const data = snapshot.exists() ? snapshot.val() : null;
+        callback(data);
+      });
+      
+      // Return unsubscribe function
+      return () => off(dataRef);
+    } catch (error) {
+      console.error(`Error subscribing to data from ${platform} database:`, error);
+      throw error;
+    }
   };
   
   return {
