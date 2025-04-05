@@ -11,8 +11,8 @@ import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { TokenGenerator } from "@/components/admin/TokenGenerator";
 import { Loader2 } from "lucide-react";
-import { fetchData, subscribeToData } from "@/lib/firebaseService";
-import { DatabaseSchema } from "@/types/database";
+import { useFirebaseService } from "@/hooks/useFirebaseService";
+import { DatabaseSchema, UIConfig } from "@/types/database";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
@@ -22,18 +22,19 @@ export default function CrunchyrollAdmin() {
   const { isAuthenticated } = useAuth();
   const dataFetchedRef = useRef(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const firebaseService = useFirebaseService('default'); // Crunchyroll is default
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       // Initial data load
-      const data = await fetchData("/");
+      const data = await firebaseService.fetchData("/");
       setDbData(data);
       toast.success("Crunchyroll database loaded successfully");
       dataFetchedRef.current = true;
       
       // Set up real-time listener
-      unsubscribeRef.current = subscribeToData("/", (realtimeData) => {
+      unsubscribeRef.current = firebaseService.subscribeToData("/", (realtimeData) => {
         if (realtimeData) {
           setDbData(realtimeData);
         }
@@ -44,7 +45,7 @@ export default function CrunchyrollAdmin() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [firebaseService]);
 
   useEffect(() => {
     // Only fetch data if authenticated and not already fetched
@@ -83,6 +84,62 @@ export default function CrunchyrollAdmin() {
         </div>
       </MainLayout>;
   }
+
+  // Default UIConfig to handle missing properties
+  const defaultUiConfig: UIConfig = {
+    approve_flow: {
+      account_format: "",
+      gif_url: "",
+      success_text: ""
+    },
+    confirmation_flow: {
+      button_text: "",
+      callback_data: "",
+      caption: "",
+      gif_url: "",
+      photo_url: ""
+    },
+    crunchyroll_screen: {
+      button_text: "",
+      callback_data: "",
+      caption: "",
+      photo_url: ""
+    },
+    freetrial_info: {
+      photo_url: ""
+    },
+    locked_flow: {
+      locked_text: ""
+    },
+    out_of_stock: {
+      gif_url: "",
+      messages: []
+    },
+    phonepe_screen: {
+      caption: "",
+      followup_text: "",
+      photo_url: ""
+    },
+    referral_info: {
+      photo_url: ""
+    },
+    reject_flow: {
+      error_text: "",
+      gif_url: ""
+    },
+    slot_booking: {
+      button_format: "",
+      callback_data: "",
+      caption: "",
+      gif_url: "",
+      photo_url: ""
+    },
+    start_command: {
+      buttons: [],
+      welcome_photo: "",
+      welcome_text: ""
+    }
+  };
 
   return <MainLayout>
       <div className="space-y-8">
@@ -174,60 +231,7 @@ export default function CrunchyrollAdmin() {
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
-            <UIConfigPanel uiConfig={dbData?.ui_config || {
-              approve_flow: {
-                account_format: "",
-                gif_url: "",
-                success_text: ""
-              },
-              confirmation_flow: {
-                button_text: "",
-                callback_data: "",
-                caption: "",
-                gif_url: "",
-                photo_url: ""
-              },
-              crunchyroll_screen: {
-                button_text: "",
-                callback_data: "",
-                caption: "",
-                photo_url: ""
-              },
-              freetrial_info: {
-                photo_url: ""
-              },
-              locked_flow: {
-                locked_text: ""
-              },
-              out_of_stock: {
-                gif_url: "",
-                messages: []
-              },
-              phonepe_screen: {
-                caption: "",
-                followup_text: "",
-                photo_url: ""
-              },
-              referral_info: {
-                photo_url: ""
-              },
-              reject_flow: {
-                error_text: "",
-                gif_url: ""
-              },
-              slot_booking: {
-                button_format: "",
-                callback_data: "",
-                caption: "",
-                gif_url: "",
-                photo_url: ""
-              },
-              start_command: {
-                buttons: [],
-                welcome_photo: "",
-                welcome_text: ""
-              }
-            }} />
+            <UIConfigPanel uiConfig={dbData?.ui_config || defaultUiConfig} />
           </TabsContent>
           
           <TabsContent value="users" className="mt-0">

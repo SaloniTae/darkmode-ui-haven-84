@@ -160,3 +160,6 @@ export interface DatabaseSchema {
     [key: string]: boolean;
   };
 }
+
+// Platform type definition
+export type PlatformType = 'default' | 'prime' | 'netflix';

@@ -10,25 +10,26 @@ import { TransactionsPanel } from "@/components/admin/TransactionsPanel";
 import { UIConfigPanel } from "@/components/admin/UIConfigPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Loader2 } from "lucide-react";
-import { fetchPrimeData, subscribeToPrimeData } from "@/lib/firebaseService";
-import { DatabaseSchema } from "@/types/database";
+import { useFirebaseService } from "@/hooks/useFirebaseService";
+import { DatabaseSchema, UIConfig } from "@/types/database";
 import { toast } from "sonner";
 
 export default function PrimeAdmin() {
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const firebaseService = useFirebaseService('prime');
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       // Initial data load
-      const data = await fetchPrimeData("/");
+      const data = await firebaseService.fetchData("/");
       setDbData(data);
       toast.success("Prime database loaded successfully");
       
       // Set up real-time listener
-      unsubscribeRef.current = subscribeToPrimeData("/", (realtimeData) => {
+      unsubscribeRef.current = firebaseService.subscribeToData("/", (realtimeData) => {
         if (realtimeData) {
           setDbData(realtimeData);
         }
@@ -39,7 +40,7 @@ export default function PrimeAdmin() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [firebaseService]);
 
   useEffect(() => {
     loadData();
@@ -86,6 +87,62 @@ export default function PrimeAdmin() {
   // Ensure slots are defined
   const slots = dbData.settings?.slots || {};
 
+  // Default UIConfig to handle missing properties
+  const defaultUiConfig: UIConfig = {
+    approve_flow: {
+      account_format: "",
+      gif_url: "",
+      success_text: ""
+    },
+    confirmation_flow: {
+      button_text: "",
+      callback_data: "",
+      caption: "",
+      gif_url: "",
+      photo_url: ""
+    },
+    crunchyroll_screen: {
+      button_text: "",
+      callback_data: "",
+      caption: "",
+      photo_url: ""
+    },
+    freetrial_info: {
+      photo_url: ""
+    },
+    locked_flow: {
+      locked_text: ""
+    },
+    out_of_stock: {
+      gif_url: "",
+      messages: []
+    },
+    phonepe_screen: {
+      caption: "",
+      followup_text: "",
+      photo_url: ""
+    },
+    referral_info: {
+      photo_url: ""
+    },
+    reject_flow: {
+      error_text: "",
+      gif_url: ""
+    },
+    slot_booking: {
+      button_format: "",
+      callback_data: "",
+      caption: "",
+      gif_url: "",
+      photo_url: ""
+    },
+    start_command: {
+      buttons: [],
+      welcome_photo: "",
+      welcome_text: ""
+    }
+  };
+
   return <MainLayout>
       <div className="space-y-8">
         <Tabs defaultValue="admin" className="w-full">
@@ -124,7 +181,7 @@ export default function PrimeAdmin() {
           </TabsContent>
           
           <TabsContent value="uiconfig" className="mt-0">
-            <UIConfigPanel uiConfig={dbData.ui_config || {}} />
+            <UIConfigPanel uiConfig={dbData.ui_config || defaultUiConfig} />
           </TabsContent>
           
           <TabsContent value="users" className="mt-0">

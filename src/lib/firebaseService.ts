@@ -3,9 +3,10 @@ import { database } from "./firebase";
 import { primeDatabase } from "./firebase-prime";
 import { netflixDatabase } from "./firebase-netflix";
 import { ref, get, set, remove, update, onValue, off, Database } from "firebase/database";
+import { PlatformType } from "@/types/database";
 
 // Factory function to create platform-specific service
-export const createFirebaseService = (platform: 'default' | 'prime' | 'netflix' = 'default') => {
+export const createFirebaseService = (platform: PlatformType = 'default') => {
   let db: Database;
   
   switch (platform) {

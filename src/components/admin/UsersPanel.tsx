@@ -16,21 +16,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { updateData, removeData, setData } from "@/lib/firebaseService";
+import { useFirebaseService } from "@/hooks/useFirebaseService";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "./ConfirmationDialog";
+import { PlatformType } from "@/types/database";
 
 interface UsersPanelProps {
   users: { [key: string]: boolean };
+  platform?: PlatformType;
 }
 
-export function UsersPanel({ users }: UsersPanelProps) {
+export function UsersPanel({ users, platform = 'default' }: UsersPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [newUserId, setNewUserId] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [localUsers, setLocalUsers] = useState<{[key: string]: boolean}>(users || {});
+  const firebaseService = useFirebaseService(platform);
   
   // Update local state when props change
   useEffect(() => {
@@ -44,7 +47,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
     }
     
     try {
-      await setData(`/users/${newUserId}`, true);
+      await firebaseService.setData(`/users/${newUserId}`, true);
       toast.success(`User ${newUserId} added successfully`);
       
       // Update local state
@@ -66,7 +69,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
     if (!selectedUser) return;
     
     try {
-      await removeData(`/users/${selectedUser}`);
+      await firebaseService.removeData(`/users/${selectedUser}`);
       toast.success(`User ${selectedUser} removed successfully`);
       
       // Update local state
@@ -82,7 +85,7 @@ export function UsersPanel({ users }: UsersPanelProps) {
   
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      await setData(`/users/${userId}`, !currentStatus);
+      await firebaseService.setData(`/users/${userId}`, !currentStatus);
       toast.success(`User ${userId} ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
       
       // Update local state
