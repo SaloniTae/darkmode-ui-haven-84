@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -12,8 +11,7 @@ interface AuthContextProps {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isLoading: boolean;
-  generateToken: (service: "netflix" | "prime") => Promise<string>;
-  // Added missing properties to match the ones used in components
+  generateToken: (service: ServiceType) => Promise<string>;
   login: (username: string, password: string, service: ServiceType) => Promise<void>;
   logout: () => Promise<void>;
   signup: (username: string, password: string, token: string, service: ServiceType) => Promise<void>;
@@ -44,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up the auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log(`Auth event: ${event}`);
@@ -52,14 +49,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentSession?.user ?? null);
         setIsAuthenticated(!!currentSession?.user);
         
-        // Check if user metadata contains service information
         if (currentSession?.user?.user_metadata?.service) {
           const service = currentSession.user.user_metadata.service as ServiceType;
           setCurrentService(service);
           setIsAdmin(service === 'crunchyroll');
         }
         
-        // Use setTimeout to avoid potential deadlocks with Supabase's internal logic
         if (currentSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           setTimeout(() => {
             console.log("User authenticated successfully");
@@ -68,7 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then check for existing session
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -77,7 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(initialSession?.user ?? null);
         setIsAuthenticated(!!initialSession?.user);
         
-        // Check if user metadata contains service information
         if (initialSession?.user?.user_metadata?.service) {
           const service = initialSession.user.user_metadata.service as ServiceType;
           setCurrentService(service);
@@ -111,7 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       toast.success("Logged in successfully");
-      navigate("/"); // Redirect to home page after successful login
+      navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
       console.error("Sign in error:", error);
@@ -238,7 +231,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const generateToken = async (service: "netflix" | "prime"): Promise<string> => {
+  const generateToken = async (service: ServiceType): Promise<string> => {
     try {
       const { data, error } = await supabase
         .from('tokens')
@@ -288,7 +281,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updatePassword = async (newPassword: string) => {
     try {
       setIsLoading(true);
-      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -299,7 +291,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast.success("Password updated successfully");
       
-      // Sign out from all devices after successful password change
       await supabase.auth.signOut({ scope: 'global' });
       
       setUser(null);
@@ -308,7 +299,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentService(null);
       setIsAdmin(false);
       
-      // Redirect to login page
       navigate('/login');
       
       toast.info("Logged out from all devices for security");
@@ -331,7 +321,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         isLoading,
         generateToken,
-        // Added implementations for the missing properties
         login,
         logout,
         signup,

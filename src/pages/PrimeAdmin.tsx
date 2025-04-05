@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,8 +12,10 @@ import { Loader2 } from "lucide-react";
 import { useFirebaseService } from "@/hooks/useFirebaseService";
 import { DatabaseSchema, UIConfig } from "@/types/database";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PrimeAdmin() {
+  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dbData, setDbData] = useState<DatabaseSchema | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -26,7 +27,7 @@ export default function PrimeAdmin() {
       // Initial data load
       const data = await firebaseService.fetchData("/");
       setDbData(data);
-      toast.success("Prime database loaded successfully");
+      console.log("Prime database loaded successfully");
       
       // Set up real-time listener
       unsubscribeRef.current = firebaseService.subscribeToData("/", (realtimeData) => {
@@ -43,7 +44,9 @@ export default function PrimeAdmin() {
   }, [firebaseService]);
 
   useEffect(() => {
-    loadData();
+    if (isAuthenticated) {
+      loadData();
+    }
     
     // Cleanup function
     return () => {
@@ -51,7 +54,7 @@ export default function PrimeAdmin() {
         unsubscribeRef.current();
       }
     };
-  }, [loadData]);
+  }, [loadData, isAuthenticated]);
 
   if (loading) {
     return <MainLayout className="flex items-center justify-center min-h-screen">

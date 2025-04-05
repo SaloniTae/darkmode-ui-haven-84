@@ -2,31 +2,30 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { ServiceType } from "@/types/auth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredService: "crunchyroll" | "netflix" | "prime";
+  requiredService: ServiceType;
 }
 
 export const ProtectedRoute = ({ children, requiredService }: ProtectedRouteProps) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, currentService } = useAuth();
 
-  // Only check for user - we don't need to make database calls here
-  // PersistLogin has already handled authentication checks
-  if (!user) {
+  // If user is not authenticated, redirect to login
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Simple service check logic
-  // For a more complex version, you'd check permissions in the database
+  // Check if the user has access to the requested service
   if (requiredService === "crunchyroll") {
-    // All authenticated users can access Crunchyroll
+    // Crunchyroll admin can access everything
     return <>{children}</>;
-  } else if (requiredService === "netflix" || requiredService === "prime") {
-    // For demo purposes, allow all authenticated users to access Netflix and Prime
-    // In a real app, you'd check permissions from the user object or database
+  } else if (requiredService === currentService) {
+    // User can access their assigned service
     return <>{children}</>;
-  } 
+  }
 
+  // Redirect to login if service doesn't match
   return <Navigate to="/login" replace />;
 };
